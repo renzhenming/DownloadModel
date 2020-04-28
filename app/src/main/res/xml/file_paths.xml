@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--<!–Context.getFilesDir() + /path/–>-->
+    <!--<files-path name="fileDir" path="images"/>-->
+    <!--<!–Context.getCacheDir() + /path/–>-->
+    <!--<cache-path name="cacheDir" path="path" />-->
+    <!--<!–Environment.getExternalStorageDirectory() + /path/–>-->
+    <!--<external-path name="extDir" path="path" />-->
+    <!--<!–Context.getExternalFilesDir(String) + /path/–>-->
+    <!--<external-cache-path name="name" path="path" />-->
+    <!--<!–/path/–>-->
+    <!--<root-path name="name" path="path" />-->
+
+    <!--external-path 是放到sd卡的目录下 Environment.getExternalStorageDirectory()-->
+    <!--path="." 代表共享 sd卡下的所有目录。手机会遍历sd卡下的所有目录，来匹配你要安装 的apk 的目录。。-->
+    <!--name="." 代表 你apk存放目录下所有apk的名字都会遍历一遍，然后跟你要安装的apk进行匹配-->
+    <external-path name="extenal" path="."/>
+</paths>
