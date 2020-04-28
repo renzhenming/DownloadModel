@@ -2,15 +2,11 @@ package com.rzm.downloadmodle.down;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
 import android.text.TextUtils;
 
@@ -28,13 +24,12 @@ public class DownloadManager {
 	// 所有观察者的集合
 	private ArrayList<DownloadObserver> mObservers = new ArrayList<DownloadObserver>();
 
-	// 下载对象的集合, ConcurrentHashMap是线程安全的HashMap
-	private ConcurrentHashMap<String, DownloadInfo> mDownloadInfoMap = new ConcurrentHashMap<String, DownloadInfo>();
 	// 下载任务集合, ConcurrentHashMap是线程安全的HashMap
 	private ConcurrentHashMap<String, DownloadTask> mDownloadTaskMap = new ConcurrentHashMap<String, DownloadTask>();
 
 	private static DownloadManager sInstance = new DownloadManager();
-	private IPath downloadPath = new DownloadPath();
+	private IPath pathManager = new DefaultPathManager();
+	private ICache<DownloadInfo> cacheManager = new DefaultCacheManager();
 
 	private DownloadManager() {
 	}
@@ -42,8 +37,20 @@ public class DownloadManager {
 	public static DownloadManager getInstance() {
 		return sInstance;
 	}
-	public void setDownloadPath(IPath path){
-		this.downloadPath = path;
+
+	/**
+	 * 下载器的path管理，包括各种存储路径等，对外开放
+	 * @param path
+	 */
+	public void setPathManager(IPath path){
+		this.pathManager = path;
+	}
+	/**
+	 * 下载器的缓存管理，对外开放
+	 * @param cache
+	 */
+	public void setCacheManager(ICache cache){
+		this.cacheManager = cache;
 	}
 
 	/**
@@ -51,7 +58,7 @@ public class DownloadManager {
 	 */
 	public synchronized void download(AppInfo appInfo) {
 		if (appInfo != null) {
-			DownloadInfo downloadInfo = mDownloadInfoMap.get(appInfo.id);
+			DownloadInfo downloadInfo = cacheManager.getCache(appInfo.id);
 			// 如果downloadInfo不为空,表示之前下载过, 就无需创建新的对象, 要接着原来的下载位置继续下载,也就是断点续传
 			if (downloadInfo == null) {// 如果为空,表示第一次下载, 需要创建下载对象, 从头开始下载
 				downloadInfo = DownloadInfo.copy(appInfo);
@@ -63,13 +70,13 @@ public class DownloadManager {
 			notifyDownloadStateChanged(downloadInfo);
 
 			// 将下载对象保存在集合中
-			mDownloadInfoMap.put(appInfo.id, downloadInfo);
+			cacheManager.setCache(appInfo.id, downloadInfo);
 
 			// 初始化下载任务
 			final DownloadInfo finalDownloadInfo = downloadInfo;
 			DownloadTask downloadTask = new DownloadTask()
 					.setDownloadUrl(downloadInfo.downloadUrl)
-					.setSavePath(downloadPath)
+					.setSavePath(pathManager)
 					.setDownloadListener(new DownloadTask.DownloadListener() {
 						@Override
 						public void onSuccess(String path) {
@@ -123,26 +130,13 @@ public class DownloadManager {
 			mDownloadTaskMap.put(appInfo.id, downloadTask);
 		}
 	}
-	@NonNull
-	private String getUrl() {
-		//http://localhost:8080/GooglePlayServer/download?name=app/com.itheima.www/com.itheima.www.apk&range=0
-		StringBuffer urlBuffer = new StringBuffer("");
-		urlBuffer.append("");
 
-		Map<String, Object> paramsMap = new HashMap<>();
-		paramsMap.put("name","downloadUrl");
-		paramsMap.put("range", "downloadSize");
-		//转换参数为字符串
-		String urlParamsByMap = HttpUtils.getUrlParamsByMap(paramsMap);
-		urlBuffer.append(urlParamsByMap);
-		return urlBuffer.toString();
-	}
 	/**
 	 * 下载暂停
 	 */
 	public synchronized void pause(String id) {
 		if (!TextUtils.isEmpty(id)) {
-			DownloadInfo downloadInfo = mDownloadInfoMap.get(id);
+			DownloadInfo downloadInfo = cacheManager.getCache(id);
 			if (downloadInfo != null) {
 				int state = downloadInfo.currentState;
 				// 如果当前状态是等待下载或者正在下载, 需要暂停当前任务
@@ -167,7 +161,7 @@ public class DownloadManager {
 	 * 安装apk
 	 */
 	public synchronized void install(Context context,String id) {
-		DownloadInfo downloadInfo = mDownloadInfoMap.get(id);
+		DownloadInfo downloadInfo = cacheManager.getCache(id);
 		if (downloadInfo != null) {
 			File file = new File(downloadInfo.path);
 			if (!file.exists()) {
@@ -194,11 +188,7 @@ public class DownloadManager {
 
 	// 根据应用对象,获取对应的下载对象
 	public DownloadInfo getDownloadInfo(String id) {
-		if (!TextUtils.isEmpty(id)) {
-			return mDownloadInfoMap.get(id);
-		}
-
-		return null;
+		return cacheManager.getCache(id);
 	}
 
 

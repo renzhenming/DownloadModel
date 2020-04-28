@@ -19,7 +19,7 @@ public class DownloadTask implements Runnable {
     //资源下载地址
     private String downloadUrl;
     //资源下载后保存的路径
-    private IPath pathManager = new DownloadPath();
+    private IPath pathManager = new DefaultPathManager();
     //开启几个线程下载
     public int threadCount = 1;//线程数量
     //资源长度的请求的超时时间，单位毫秒
