@@ -19,7 +19,7 @@ public class LogUtils {
 	/** 日志输出时的TAG */
 	private static String mTag = "LogUtils";
 	/** 是否允许输出log */
-	private static int mDebuggable = LEVEL_NONE;
+	private static int mDebuggable = LEVEL_VERBOSE;
 
 	/** 以级别为 d 的形式输出LOG */
 	public static void v(String msg) {
