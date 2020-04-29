@@ -30,7 +30,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
     public void bind(AppInfo appInfo) {
         textView.setText(appInfo.name);
         mAppInfo = appInfo;
-        mDownloadManager = DownloadManager.getInstance();
+        mDownloadManager = DownloadManager.getInstance(context);
         // 监听下载进度
         mDownloadManager.registerObserver(this);
 

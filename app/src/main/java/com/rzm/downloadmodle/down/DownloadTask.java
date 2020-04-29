@@ -179,13 +179,16 @@ public class DownloadTask implements Runnable {
                 downloadSize += downloadThread.getDownloadSize();
             }
             float percent = (downloadSize * 1.0f) / (fileTotalLength * 1.0f) * 100;
-            LogUtils.d("总下载进度" + percent + "% downloadSize=" + downloadSize + " fileTotalLength=" + fileTotalLength);
             if (downloadListener != null) {
                 if (pause){
                     downloadListener.onPause();
                     LogUtils.d("下载暂停，跳出进度循环");
                     break;
                 }else {
+                    if (percent == 0){
+                        continue;
+                    }
+                    LogUtils.d("总下载进度" + percent + "% downloadSize=" + downloadSize + " fileTotalLength=" + fileTotalLength);
                     downloadListener.onProgress(downloadSize, fileTotalLength);
                 }
             }

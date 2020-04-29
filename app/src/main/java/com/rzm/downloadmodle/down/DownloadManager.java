@@ -27,15 +27,24 @@ public class DownloadManager {
 	// 下载任务集合, ConcurrentHashMap是线程安全的HashMap
 	private ConcurrentHashMap<String, DownloadTask> mDownloadTaskMap = new ConcurrentHashMap<String, DownloadTask>();
 
-	private static DownloadManager sInstance = new DownloadManager();
-	private IPath pathManager = new DefaultPathManager();
-	private ICache<DownloadInfo> cacheManager = new DefaultCacheManager();
+	private static DownloadManager instance;
+	private IPath pathManager;
+	private ICache<DownloadInfo> cacheManager;
 
-	private DownloadManager() {
+	private DownloadManager(Context context) {
+		pathManager = new DefaultPathManager();
+		cacheManager = new DefaultCacheManager(context);
 	}
 
-	public static DownloadManager getInstance() {
-		return sInstance;
+	public static DownloadManager getInstance(Context context) {
+		if (instance == null){
+			synchronized (DownloadManager.class){
+				if (instance == null){
+					instance = new DownloadManager(context);
+				}
+			}
+		}
+		return instance;
 	}
 
 	/**
@@ -85,6 +94,7 @@ public class DownloadManager {
 							mDownloadTaskMap.remove(finalDownloadInfo.id);
 							finalDownloadInfo.currentState = STATE_SUCCESS;
 							finalDownloadInfo.path = path;
+							cacheManager.updateCache(finalDownloadInfo.id,finalDownloadInfo);
 							notifyDownloadStateChanged(finalDownloadInfo);
 						}
 
@@ -95,6 +105,7 @@ public class DownloadManager {
 							mDownloadTaskMap.remove(finalDownloadInfo.id);
 							finalDownloadInfo.currentState = STATE_ERROR;
 							finalDownloadInfo.currentPos = 0;
+							cacheManager.updateCache(finalDownloadInfo.id,finalDownloadInfo);
 							notifyDownloadStateChanged(finalDownloadInfo);
 						}
 
@@ -103,6 +114,7 @@ public class DownloadManager {
 							LogUtils.d("下载开始");
 							finalDownloadInfo.currentState = STATE_DOWNLOAD;
 							finalDownloadInfo.currentPos = 0;
+							cacheManager.updateCache(finalDownloadInfo.id,finalDownloadInfo);
 							notifyDownloadStateChanged(finalDownloadInfo);
 						}
 
@@ -112,6 +124,7 @@ public class DownloadManager {
 							finalDownloadInfo.currentPos = current;// 更新当前文件下载位置
 							finalDownloadInfo.currentState = STATE_DOWNLOAD;
 							finalDownloadInfo.size =total;// 更新当前文件下载位置
+							cacheManager.updateCache(finalDownloadInfo.id,finalDownloadInfo);
 							notifyDownloadProgressChanged(finalDownloadInfo);// 通知进度更新
 						}
 
@@ -121,6 +134,7 @@ public class DownloadManager {
 							// 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
 							mDownloadTaskMap.remove(finalDownloadInfo.id);
 							finalDownloadInfo.currentState = STATE_PAUSE;
+							cacheManager.updateCache(finalDownloadInfo.id,finalDownloadInfo);
 						}
 					})
 					.build();
