@@ -34,7 +34,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         // 监听下载进度
         mDownloadManager.registerObserver(this);
 
-        DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.id);
+        DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.downloadUrl);
         if (downloadInfo == null) {
             // 没有下载过
             mCurrentState = DownloadManager.STATE_NONE;
@@ -45,12 +45,12 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
             mProgress = downloadInfo.getProgress();
         }
 
-        refreshUI(mProgress, mCurrentState, appInfo.id);
+        refreshUI(mProgress, mCurrentState, appInfo.downloadUrl);
     }
 
-    private void refreshUI(float progress, int state, String id) {
+    private void refreshUI(float progress, int state, String downloadUrl) {
         // 在刷新界面时,确保刷新的是正确应用的界面
-        if (!mAppInfo.id.equals(id)) {
+        if (!downloadUrl.equals(mAppInfo.downloadUrl)) {
             return;
         }
 
@@ -101,11 +101,11 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
     // 主线程刷新ui
     private void refreshOnMainThread(final DownloadInfo info) {
         // 判断要刷新的下载对象是否是当前的应用
-        if (info.id.equals(mAppInfo.id)) {
+        if (info.downloadUrl.equals(mAppInfo.downloadUrl)) {
             textView.post(new Runnable() {
                 @Override
                 public void run() {
-                    refreshUI(info.getProgress(), info.currentState, info.id);
+                    refreshUI(info.getProgress(), info.currentState, info.downloadUrl);
                 }
             });
         }
@@ -119,11 +119,11 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
                         || mCurrentState == DownloadManager.STATE_PAUSE
                         || mCurrentState == DownloadManager.STATE_ERROR) {
                     // 开始下载
-                    mDownloadManager.download(mAppInfo);
+                    mDownloadManager.download(mAppInfo.downloadUrl);
                 } else if (mCurrentState == DownloadManager.STATE_DOWNLOAD
                         || mCurrentState == DownloadManager.STATE_WAITING) {
                     // 暂停下载
-                    mDownloadManager.pause(mAppInfo.id);
+                    mDownloadManager.pause(mAppInfo.downloadUrl);
                 } else if (mCurrentState == DownloadManager.STATE_SUCCESS) {
                     // 开始安装
                     mDownloadManager.install(context,mAppInfo.id);

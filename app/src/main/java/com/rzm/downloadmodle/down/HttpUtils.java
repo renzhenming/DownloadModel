@@ -1,5 +1,7 @@
 package com.rzm.downloadmodle.down;
 
+import android.text.TextUtils;
+
 import java.util.Map;
 import okhttp3.Request;
 
@@ -34,4 +36,19 @@ public class HttpUtils {
         }
         return s;
     }
+
+    public static String getFileName(String downloadUrl) {
+        String fileName = "";
+        if (TextUtils.isEmpty(downloadUrl)) {
+            throw new NullPointerException("downloadUrl is null");
+        }
+        int i = downloadUrl.lastIndexOf("/");
+        if (i == -1) {
+            fileName = Md5Utils.md5(downloadUrl) + "";
+        } else {
+            fileName = downloadUrl.substring(i + 1);
+        }
+        return fileName;
+    }
+
 }

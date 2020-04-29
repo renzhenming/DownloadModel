@@ -407,19 +407,10 @@ public class DownloadTask implements Runnable {
         }
     }
 
-    private String getFileName() {
+    public String getFileName(){
         if (TextUtils.isEmpty(fileName)) {
-            if (TextUtils.isEmpty(downloadUrl)) {
-                throw new NullPointerException("downloadUrl is null");
-            }
-            int i = downloadUrl.lastIndexOf("/");
-            if (i == -1) {
-                fileName = Md5Utils.md5(downloadUrl) + "";
-            } else {
-                fileName = downloadUrl.substring(i + 1);
-            }
+            fileName = HttpUtils.getFileName(downloadUrl);
         }
-        LogUtils.d("截取到的文件名：" + fileName);
         return fileName;
     }
 

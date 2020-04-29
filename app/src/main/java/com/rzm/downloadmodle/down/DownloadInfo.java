@@ -1,6 +1,5 @@
 package com.rzm.downloadmodle.down;
-import com.rzm.downloadmodle.AppInfo;
-
+import android.text.TextUtils;
 import java.io.Serializable;
 
 public class DownloadInfo implements Serializable {
@@ -22,17 +21,16 @@ public class DownloadInfo implements Serializable {
 		return (float) currentPos / size;
 	}
 
+	public DownloadInfo(){}
 	/**
 	 * 根据应用信息,拷贝出一个下载对象
 	 */
-	public static DownloadInfo copy(AppInfo appInfo) {
-		DownloadInfo info = new DownloadInfo();
-		info.id = appInfo.id;
-		info.size = appInfo.size;
-		info.downloadUrl = appInfo.downloadUrl;
-		info.name = appInfo.name;
-		info.currentState = DownloadManager.STATE_NONE;
-		info.currentPos = 0;
-		return info;
+	public DownloadInfo(String downloadUrl,String id) {
+		this.id = id;
+		this.downloadUrl =downloadUrl;
+		String fileName = HttpUtils.getFileName(downloadUrl);
+		this.name = TextUtils.isEmpty(fileName)?"未命名":fileName;
+		this.currentState = DownloadManager.STATE_NONE;
+		this.currentPos = 0;
 	}
 }
