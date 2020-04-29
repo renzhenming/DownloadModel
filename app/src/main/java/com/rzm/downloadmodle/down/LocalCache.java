@@ -16,7 +16,12 @@ public class LocalCache {
     }
 
     public void setCache(String id, DownloadInfo downloadInfo) {
-        dao.insert(downloadInfo);
+        final List<DownloadInfo> list = dao.querySupport().selection("id = ?").selectionArgs(id).query();
+        if (list == null || list.size() == 0) {
+            dao.insert(downloadInfo);
+        }else{
+            dao.update(downloadInfo, "id=?", new String[]{id});
+        }
     }
 
     public DownloadInfo getCache(String id) {
