@@ -2,39 +2,33 @@ package com.rzm.downloadmodle;
 
 import android.Manifest;
 import android.os.Build;
-import android.os.Handler;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.View;
-
-import com.rzm.downloadmodle.down.DownloadInfo;
-import com.rzm.downloadmodle.down.DownloadManager;
-import com.rzm.downloadmodle.down.LogUtils;
-
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity {
 
+    public static String HOST = "http://192.168.0.102:8080/";
     public  String apkUrl[] =new String[]
-            {"http://192.168.0.103:8080/download/cn.etouch.ecalendar.apk",
-            "http://192.168.0.103:8080/download/cn.goapk.market.apk",
-            "http://192.168.0.103:8080/download/cn.kuwo.player.apk",
-            "http://192.168.0.103:8080/download/com.achievo.vipshop.apk",
-            "http://192.168.0.103:8080/download/com.autonavi.minimap.apk",
-            "http://192.168.0.103:8080/download/com.baidu.tieba.apk",
-            "http://192.168.0.103:8080/download/com.changba.apk",
-            "http://192.168.0.103:8080/download/com.eg.android.AlipayGphone.apk",
-            "http://192.168.0.103:8080/download/com.estrongs.android.pop.apk",
-            "http://192.168.0.103:8080/download/com.feelingtouch.dragon2.apk",
-            "http://192.168.0.103:8080/download/com.medapp.man.apk",
-            "http://192.168.0.103:8080/download/com.mogujie.apk",
-            "http://192.168.0.103:8080/download/com.sankuai.meituan.apk",
-            "http://192.168.0.103:8080/download/com.sds.android.ttpod.apk",
-            "http://192.168.0.103:8080/download/com.shuqi.controller.apk" ,
-            "http://192.168.0.103:8080/download/com.snda.wifilocating.apk"};
+            {"download/cn.etouch.ecalendar.apk",
+            "download/cn.goapk.market.apk",
+            "download/cn.kuwo.player.apk",
+            "download/com.achievo.vipshop.apk",
+            "download/com.autonavi.minimap.apk",
+            "download/com.baidu.tieba.apk",
+            "download/com.changba.apk",
+            "download/com.eg.android.AlipayGphone.apk",
+            "download/com.estrongs.android.pop.apk",
+            "download/com.feelingtouch.dragon2.apk",
+            "download/com.medapp.man.apk",
+            "download/com.mogujie.apk",
+            "download/com.sankuai.meituan.apk",
+            "download/com.sds.android.ttpod.apk",
+            "download/com.shuqi.controller.apk" ,
+            "download/com.snda.wifilocating.apk"};
     private RecyclerView recyclerView;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -50,45 +44,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             AppInfo info = new AppInfo();
             info.id = i+"";
             info.name ="应用"+i;
-            info.downloadUrl = apkUrl[i];
+            info.downloadUrl = HOST+apkUrl[i];
             list.add(info);
         }
         recyclerView.setAdapter(new AppAdapter(list,this));
-    }
-
-    public void onClick(View v) {
-        DownloadManager.getInstance().registerObserver(new DownloadManager.DownloadObserver() {
-            @Override
-            public void onDownloadStateChanged(DownloadInfo info) {
-                LogUtils.d("info.currentState "+info.currentState);
-            }
-
-            @Override
-            public void onDownloadProgressChanged(DownloadInfo info) {
-                LogUtils.d("info.getProgress "+info.getProgress());
-            }
-        });
-        final AppInfo info = new AppInfo();
-        info.id = "12345";
-        info.size = 58775165;
-        info.downloadUrl = apkUrl[0];
-        info.name = "应用名";
-        DownloadManager.getInstance().download(info);
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                LogUtils.d("十秒后暂停");
-                DownloadManager.getInstance().pause("12345");
-            }
-        },10*1000);
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                LogUtils.d("20秒后再次开启");
-                DownloadManager.getInstance().download(info);
-            }
-        },20*1000);
     }
 }
