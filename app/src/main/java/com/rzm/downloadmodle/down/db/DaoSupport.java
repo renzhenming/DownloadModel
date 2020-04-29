@@ -15,16 +15,6 @@ import java.util.Map;
 /**
  * Created by rzm on 2017/8/22.
  */
-
-//使用方法：
-//数据库
-//final IDaoSupport<Person> dao = DaoSupportFactory.getFactory().getDao(Person.class);
-//面向对象的六大思想，最少的知识原则
-//dao.insert(new Person("rzm",26));
-//int delete = dao.delete("age=?", new String[]{"28"});
-//int update = dao.update(new Person("haha", 28), "age=?", new String[]{"27"});
-//List<Person> query = dao.query();
-
 public class DaoSupport<T> implements IDaoSupport<T> {
 
     private static final String TAG = "DaoSupport";
@@ -44,7 +34,6 @@ public class DaoSupport<T> implements IDaoSupport<T> {
         //创建表 sql语句
         //"create table if not exists Person (id integer primary key autoincrement,name text, age integer,flag boolean)"
         StringBuffer buffer = new StringBuffer();
-//        buffer.append("create table if not exists ").append(DaoUtil.getTableName(clazz)).append(" (id integer primary key autoincrement,");
         buffer.append("create table if not exists ").append(DaoUtil.getTableName(clazz)).append(" (");
 
         Field[] fields = mClazz.getDeclaredFields();
@@ -129,32 +118,24 @@ public class DaoSupport<T> implements IDaoSupport<T> {
                     continue;
                 }
                 field.setAccessible(true);
-
                 //分别获取到属性和对应的值 比如 name = age  value = 12
                 String name = field.getName();
                 Object value = field.get(t);
-
                 mPutMethodArgs[0] = name;
                 mPutMethodArgs[1] = value;
-
                 //使用反射获取方法执行
-
                 String filedTypeName = field.getType().getName();
                 Method putMethod = mPutMethods.get(filedTypeName);
                 if (putMethod == null) {
                     // value.getClass() 获取到的是这个值的所属类型 比如如果是int age 10岁， 那么这个value获取到的就是
                     // class java.lang.Integer  即Integer.class
-
                     // 获取ContentValue中的put方法  例如 public void put(String key, Integer value，ContentValue是以键值对的
                     // 形式添加数据的，第一个参数肯定是String,而第二个就由我们定义的属性的性质决定了，用 value.getClass()获取
                     putMethod = ContentValues.class.getDeclaredMethod("put", String.class, value.getClass());
-
                     //缓存这个获取到的方法，再次执行的时候直接取用，减少反射的使用次数，（参考系统的代码方式）
                     mPutMethods.put(filedTypeName, putMethod);
                 }
-
                 putMethod.setAccessible(true);
-
                 //反射执行这个方法，将获取到的键值存入
                 putMethod.invoke(contentValues, mPutMethodArgs);
             } catch (IllegalAccessException e) {
@@ -167,7 +148,6 @@ public class DaoSupport<T> implements IDaoSupport<T> {
                 mPutMethodArgs[0] = null;
                 mPutMethodArgs[1] = null;
             }
-
         }
         return contentValues;
     }

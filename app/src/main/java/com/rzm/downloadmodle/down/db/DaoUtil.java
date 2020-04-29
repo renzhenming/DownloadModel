@@ -4,11 +4,6 @@ import android.text.TextUtils;
 
 import java.util.Locale;
 
-/**
- * Created by Darren on 2017/2/28.
- * Email: 240336124@qq.com
- * Description:
- */
 public class DaoUtil {
 
     private DaoUtil() {
