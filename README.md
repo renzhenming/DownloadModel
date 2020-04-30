@@ -52,3 +52,7 @@ dependencies {
       }
 });
  ```
+ ###移除监听
+ ```
+ DownloadManager.getInstance(context).unregisterObserver(downloadObserver);
+ ```
