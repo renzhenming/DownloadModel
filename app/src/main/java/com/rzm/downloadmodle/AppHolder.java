@@ -6,8 +6,8 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.TextView;
 
-import com.rzm.downloadmodle.down.DownloadManager;
-import com.rzm.downloadmodle.down.DownloadInfo;
+import com.rzm.downloadlibrary.download.DownloadInfo;
+import com.rzm.downloadlibrary.download.DownloadManager;
 
 public class AppHolder extends RecyclerView.ViewHolder implements DownloadManager.DownloadObserver, View.OnClickListener {
 
