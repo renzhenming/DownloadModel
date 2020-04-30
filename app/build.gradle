@@ -28,5 +28,5 @@ dependencies {
     implementation 'com.android.support:recyclerview-v7:28.0.0'
     implementation 'com.github.satyan:sugar:1.5'
 //    implementation project(':downloadlibrary')
-    implementation 'com.github.renzhenming:DownloadModel:v1.0.0'
+    implementation 'com.github.renzhenming:DownloadModel:v1.0.1'
 }
