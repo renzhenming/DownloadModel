@@ -114,7 +114,8 @@ public class DaoSupport<T> implements IDaoSupport<T> {
         Field[] fields = mClazz.getDeclaredFields();
         for (Field field : fields) {
             try {
-                if (field.isSynthetic()){
+                //过滤掉系统自动生成的字段和serialVersionUID
+                if (field.isSynthetic() || "serialVersionUID".equals(field.getName())){
                     continue;
                 }
                 field.setAccessible(true);
