@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static String HOST = "http://192.168.0.102:8080/";
+    public static String HOST = "http://192.168.0.105:8080/";
     public  String apkUrl[] =new String[]
             {"download/cn.etouch.ecalendar.apk",
             "download/cn.goapk.market.apk",

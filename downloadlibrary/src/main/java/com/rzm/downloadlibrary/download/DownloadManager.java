@@ -9,6 +9,8 @@ import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.cache.DefaultCacheManager;
 import com.rzm.downloadlibrary.cache.ICache;
+import com.rzm.downloadlibrary.net.DefaultConnectionManager;
+import com.rzm.downloadlibrary.net.IConnection;
 import com.rzm.downloadlibrary.path.DefaultPathManager;
 import com.rzm.downloadlibrary.path.IPath;
 import com.rzm.downloadlibrary.thread.DefaultThreadPool;
@@ -39,6 +41,7 @@ public class DownloadManager {
 	private IPath pathManager;
 	private ICache<DownloadInfo> cacheManager;
 	private IThreadPool threadManager;
+	private IConnection connManager;
 	// 观察者的集合
 	private ArrayList<DownloadObserver> mObservers = new ArrayList<DownloadObserver>();
 	// 下载任务集合, ConcurrentHashMap是线程安全的HashMap
@@ -48,6 +51,7 @@ public class DownloadManager {
 		pathManager = new DefaultPathManager();
 		cacheManager = new DefaultCacheManager(context);
 		threadManager = new DefaultThreadPool();
+		connManager = new DefaultConnectionManager();
 	}
 
 	public static DownloadManager getInstance(Context context) {
@@ -85,6 +89,14 @@ public class DownloadManager {
 	}
 
 	/**
+	 * 设置网络工具，可视具体需要更换
+	 * @param connection
+	 */
+	public void setConnManager(IConnection connection){
+		this.connManager = connection;
+	}
+
+	/**
 	 * 开始下载
 	 */
 	public synchronized void download(String downloadUrl) {
@@ -113,6 +125,7 @@ public class DownloadManager {
 		DownloadTask downloadTask = new DownloadTask()
 				.setDownloadUrl(downloadInfo.downloadUrl)
 				.setSavePath(pathManager)
+				.setConnManager(connManager)
 				.setDownloadListener(new DownloadTask.DownloadListener() {
 					@Override
 					public void onSuccess(String path) {

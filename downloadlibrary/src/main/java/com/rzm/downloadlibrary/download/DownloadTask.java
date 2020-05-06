@@ -2,6 +2,8 @@ package com.rzm.downloadlibrary.download;
 
 import android.text.TextUtils;
 
+import com.rzm.downloadlibrary.net.DefaultConnectionManager;
+import com.rzm.downloadlibrary.net.IConnection;
 import com.rzm.downloadlibrary.path.DefaultPathManager;
 import com.rzm.downloadlibrary.path.IPath;
 import com.rzm.downloadlibrary.utils.HttpUtils;
@@ -15,8 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -26,6 +26,8 @@ public class DownloadTask implements Runnable {
     private String downloadUrl;
     //资源下载后保存的路径
     private IPath pathManager = new DefaultPathManager();
+    //网络工具
+    private IConnection connManager = new DefaultConnectionManager();
     //开启几个线程下载
     public int threadCount = 1;//线程数量
     //资源长度的请求的超时时间，单位毫秒
@@ -71,7 +73,16 @@ public class DownloadTask implements Runnable {
         this.pathManager = path;
         return this;
     }
-
+    /**
+     * 网络链接工具
+     *
+     * @param connection
+     * @return
+     */
+    public DownloadTask setConnManager(IConnection connection) {
+        this.connManager = connection;
+        return this;
+    }
     /**
      * 设置获取资源长度的请求的超时时间，单位毫秒
      *
@@ -126,20 +137,8 @@ public class DownloadTask implements Runnable {
         return this;
     }
 
-    private int getContentLength(String downloadUr, int timeOut) throws IOException {
-        //1.确定服务器资源的总大小。  通过使用URLConnection请求资源，获取响应的信息，获取资源的大小
-        URL url = new URL(downloadUr);
-        HttpURLConnection cn = (HttpURLConnection) url.openConnection();
-        cn.setRequestMethod("GET");
-        cn.setConnectTimeout(timeOut);
-        int code = cn.getResponseCode();
-        //200 : 请求全部资源成功 206：请求部分资源成功 300 ： 重定向或跳转  400 ： 资源不存在  500 ：服务器异常
-        if (code == 200) {
-            //获取资源大小
-            return cn.getContentLength();
-        } else {
-            throw new IOException("failed to connect to server,code = " + code + " error msg = " + cn.getResponseMessage());
-        }
+    private int getContentLength(String downloadUrl, int timeOut) throws IOException {
+        return connManager.getContentLength(downloadUrl,timeOut);
     }
 
     private boolean createSameSizeFile(String downloadPath,int fileTotalLength) throws IOException {
@@ -346,10 +345,6 @@ public class DownloadTask implements Runnable {
         private String[] download(String downloadUrl, String downloadPath, int threadId,int startIndex, int endIndex, int downloadRequestTimeout) throws IOException {
             String randomFileStr = Md5Utils.md5(downloadUrl);
             String[] errorMsg = new String[2];
-            URL url = new URL(downloadUrl);
-            HttpURLConnection cn = (HttpURLConnection) url.openConnection();
-            cn.setRequestMethod("GET");
-            cn.setConnectTimeout(downloadRequestTimeout);
             //上次下载的位置
             int lastDownloadIndex = startIndex;
             //读取上次下载的结束位置，作为本次下载的开始位置
@@ -364,22 +359,10 @@ public class DownloadTask implements Runnable {
                 } catch (Exception e) {
                     lastDownloadIndex = 0;
                 }
-                cn.setRequestProperty("Range", "bytes=" + lastDownloadIndex + "-" + endIndex);//告诉服务器请求资源的范围
                 LogUtils.d("读取到上次保存的位置，从这个位置继续下载 lastDownloadIndex="+lastDownloadIndex);
-            } else {
-                //由于要请求服务器部分资源，所需请求前需要设置一些参数告诉服务器要请求资源的范围
-                //表示头500个字节：bytes=0-499
-                //表示第二个500字节：bytes=500-999
-                //表示最后500个字节：bytes=-500 . |1 a. N% a, m% r, a% `( u9 I1 _
-                //表示500字节以后的范围：bytes=500-
-                //第一个和最后一个字节：bytes=0-0,-1
-                cn.setRequestProperty("Range", "bytes=" + lastDownloadIndex + "-" + endIndex);//告诉服务器请求资源的范围
             }
-            int code = cn.getResponseCode();
-            String message = cn.getResponseMessage();
-            if (code == 206 || code == 200) {//200 : 请求全部资源成功 206：请求部分资源成功 300 ： 重定向或跳转  400 ： 资源不存在  500 ：服务器异常
-                //读取流信息,保存文件
-                InputStream inputStream = cn.getInputStream();
+            InputStream downloadStream = connManager.download(downloadUrl, lastDownloadIndex, endIndex, downloadRequestTimeout);
+            if (downloadStream != null) {
                 File file = new File(downloadPath + File.separator + getFileName() + ".tmp");
                 //创建一个随机访问文件,有指定从某个位置开始写入
                 RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rwd");
@@ -390,7 +373,7 @@ public class DownloadTask implements Runnable {
                 byte[] buffer = new byte[1024];
                 int len = 0;
                 int total = 0;//当前线程本次下载的字节数
-                while ((len = inputStream.read(buffer)) != -1 && !pause) {
+                while ((len = downloadStream.read(buffer)) != -1 && !pause) {
                     //开始写入流信息到文件
                     randomAccessFile.write(buffer, 0, len);
                     total = total + len;
@@ -402,12 +385,13 @@ public class DownloadTask implements Runnable {
                     randomAccessFile2.write((String.valueOf(currentTreadDownloadPosition)).getBytes());//保存本次下载的位置
                 }
                 //释放资源
-                inputStream.close();
+                downloadStream.close();
                 randomAccessFile.close();
                 randomAccessFile2.close();
             } else {
-                errorMsg[0] = String.valueOf(code);
-                errorMsg[1] = message;
+                String[] responseInfo = connManager.getResponseInfo();
+                errorMsg[0] = responseInfo[0];
+                errorMsg[1] = responseInfo[1];
             }
             return errorMsg;
         }
@@ -422,13 +406,9 @@ public class DownloadTask implements Runnable {
 
     public interface DownloadListener {
         void onSuccess(String path);
-
         void onFailed(int failCode, String errorMessage);
-
         void onStart();
-
         void onProgress(int current, int total);
-
         void onPause();
     }
 }
