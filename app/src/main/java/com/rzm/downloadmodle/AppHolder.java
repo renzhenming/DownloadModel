@@ -53,7 +53,6 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         if (!downloadUrl.equals(mAppInfo.downloadUrl)) {
             return;
         }
-
         mCurrentState = state;
         mProgress = progress;
         switch (state) {
@@ -89,16 +88,6 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
 
     @Override
     public void onDownloadStateChanged(DownloadInfo info) {
-        refreshOnMainThread(info);
-    }
-
-    @Override
-    public void onDownloadProgressChanged(DownloadInfo info) {
-        refreshOnMainThread(info);
-    }
-
-    // 主线程刷新ui
-    private void refreshOnMainThread(final DownloadInfo info) {
         // 判断要刷新的下载对象是否是当前的应用
         if (info.downloadUrl.equals(mAppInfo.downloadUrl)) {
             refreshUI(info.getProgress(), info.currentState, info.downloadUrl);
@@ -114,14 +103,20 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
                         || mCurrentState == DownloadManager.STATE_PAUSE
                         || mCurrentState == DownloadManager.STATE_ERROR) {
                     // 开始下载
-                    mDownloadManager.download(mAppInfo.downloadUrl);
+                    mDownloadManager.download(new DownloadInfo.Builder()
+                            .setDownloadUrl(mAppInfo.downloadUrl)
+                            //downloadMd5作为本次下载的唯一标识存在
+                            .setDownloadMd5(mAppInfo.downloadMd5)
+                            .setName(mAppInfo.name)
+                            .build()
+                    );
                 } else if (mCurrentState == DownloadManager.STATE_DOWNLOAD
                         || mCurrentState == DownloadManager.STATE_WAITING) {
                     // 暂停下载
-                    mDownloadManager.pause(mAppInfo.downloadUrl);
+                    mDownloadManager.pause(mAppInfo.downloadMd5);
                 } else if (mCurrentState == DownloadManager.STATE_SUCCESS) {
                     // 开始安装
-                    mDownloadManager.install(context, mAppInfo.id);
+                    mDownloadManager.install(context, mAppInfo.downloadMd5);
                 }
                 break;
 

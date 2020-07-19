@@ -6,6 +6,7 @@ public class AppInfo {
     public String name;
     public String downloadUrl;
     public String version;
+    public String downloadMd5;
 
     @Override
     public String toString() {

@@ -145,7 +145,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String md5 = cursor.getString(md5Index);
             String pkg = cursor.getString(pkgIndex);
 
-            DownloadInfo info = new DownloadInfo();
+            DownloadInfo info = new DownloadInfo.Builder().build();
             info.id = id;
             info.name = name;
             info.size = size;

@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 
+import com.rzm.downloadlibrary.utils.Md5Utils;
+
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
             info.id = i + "";
             info.name = "应用" + i;
             info.downloadUrl = remoteUrl[i];
+            info.downloadMd5 = Md5Utils.md5(remoteUrl[i]+"_"+i);
             list.add(info);
         }
         recyclerView.setAdapter(new AppAdapter(list, this));
