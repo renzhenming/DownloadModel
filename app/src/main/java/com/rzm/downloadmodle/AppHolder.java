@@ -34,7 +34,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         // 监听下载进度
         mDownloadManager.registerObserver(this);
 
-        DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.downloadUrl);
+        DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.downloadMd5);
         if (downloadInfo == null) {
             // 没有下载过
             mCurrentState = DownloadManager.STATE_NONE;
