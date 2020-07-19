@@ -15,6 +15,8 @@ public class DownloadInfo implements Serializable {
 	public int currentState;// 当前下载状态
 	public long currentPos;// 当前下载位置
 	public String path;// apk下载在本地的路径
+	public String downloadMd5;
+	public String packageName;
 
 	// 获取当前下载进度
 	public float getProgress() {

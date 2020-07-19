@@ -17,11 +17,9 @@ public class MemoryCache {
 
     public  void setCache(String id,DownloadInfo t){
         lruCache.put(id,t);
-        LogUtils.d(TAG+"lruCache setCache id= "+id);
     }
 
     public DownloadInfo getCache(String id){
-        LogUtils.d(TAG+"lruCache getCache id= "+id + " lruCache.get(id)="+lruCache.get(id));
         return lruCache.get(id);
     }
 

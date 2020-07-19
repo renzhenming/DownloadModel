@@ -71,11 +71,11 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
                 break;
             case DownloadManager.STATE_PAUSE:
                 pbProgress.setPercent(progress);
-                pbProgress.setText("继续下载");
+                pbProgress.setText("继续");
                 break;
             case DownloadManager.STATE_ERROR:
                 pbProgress.setPercent(progress);
-                pbProgress.setText("点击重试");
+                pbProgress.setText("重试");
                 break;
             case DownloadManager.STATE_SUCCESS:
                 pbProgress.setPercent(1);
@@ -89,27 +89,22 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
 
     @Override
     public void onDownloadStateChanged(DownloadInfo info) {
-        System.out.println("当前状态"+info.currentState);
         refreshOnMainThread(info);
     }
 
     @Override
     public void onDownloadProgressChanged(DownloadInfo info) {
-        System.out.println("当前状态    onDownloadProgressChanged   "+info.currentState);
         refreshOnMainThread(info);
     }
+
     // 主线程刷新ui
     private void refreshOnMainThread(final DownloadInfo info) {
         // 判断要刷新的下载对象是否是当前的应用
         if (info.downloadUrl.equals(mAppInfo.downloadUrl)) {
-            textView.post(new Runnable() {
-                @Override
-                public void run() {
-                    refreshUI(info.getProgress(), info.currentState, info.downloadUrl);
-                }
-            });
+            refreshUI(info.getProgress(), info.currentState, info.downloadUrl);
         }
     }
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -126,7 +121,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
                     mDownloadManager.pause(mAppInfo.downloadUrl);
                 } else if (mCurrentState == DownloadManager.STATE_SUCCESS) {
                     // 开始安装
-                    mDownloadManager.install(context,mAppInfo.id);
+                    mDownloadManager.install(context, mAppInfo.id);
                 }
                 break;
 

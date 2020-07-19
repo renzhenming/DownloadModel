@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.content.FileProvider;
 import android.text.TextUtils;
 
@@ -23,7 +25,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DownloadManager {
-
 	// 下载未开始
 	public static final int STATE_NONE = 0;
 	// 等待下载
@@ -42,6 +43,8 @@ public class DownloadManager {
 	private ICache<DownloadInfo> cacheManager;
 	private IThreadPool threadManager;
 	private IConnection connManager;
+	//线程切换
+	private Handler mainHandler = new Handler(Looper.getMainLooper());
 	// 观察者的集合
 	private ArrayList<DownloadObserver> mObservers = new ArrayList<DownloadObserver>();
 	// 下载任务集合, ConcurrentHashMap是线程安全的HashMap
@@ -266,18 +269,31 @@ public class DownloadManager {
 		if (observer != null && mObservers.contains(observer)) {
 			mObservers.remove(observer);
 		}
-	}
-
-	public synchronized void notifyDownloadStateChanged(DownloadInfo info) {
-		for (DownloadObserver observer : mObservers) {
-			observer.onDownloadStateChanged(info);
+		if (mainHandler != null){
+			mainHandler.removeCallbacksAndMessages(null);
 		}
 	}
 
-	public synchronized void notifyDownloadProgressChanged(DownloadInfo info) {
-		for (DownloadObserver observer : mObservers) {
-			observer.onDownloadProgressChanged(info);
-		}
+	public synchronized void notifyDownloadStateChanged(final DownloadInfo info) {
+		mainHandler.post(new Runnable() {
+			@Override
+			public void run() {
+				for (DownloadObserver observer : mObservers) {
+					observer.onDownloadStateChanged(info);
+				}
+			}
+		});
+	}
+
+	public synchronized void notifyDownloadProgressChanged(final DownloadInfo info) {
+		mainHandler.post(new Runnable() {
+			@Override
+			public void run() {
+				for (DownloadObserver observer : mObservers) {
+					observer.onDownloadProgressChanged(info);
+				}
+			}
+		});
 	}
 	public interface DownloadObserver {
 		void onDownloadStateChanged(DownloadInfo info);
