@@ -176,7 +176,7 @@ public class DownloadTask implements Runnable {
                     downloadListener.onProgress(downloadSize, fileTotalLength);
                 }
             }
-            if (percent >= 99) {
+            if (percent >= 100) {
                 break;
             }
         }
