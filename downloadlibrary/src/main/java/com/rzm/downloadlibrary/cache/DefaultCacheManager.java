@@ -18,26 +18,26 @@ public class DefaultCacheManager implements ICache<DownloadInfo> {
     }
 
     @Override
-    public void setCache(String id, DownloadInfo downloadInfo) {
-        memory.setCache(id,downloadInfo);
-        local.setCache(id,downloadInfo);
+    public void setCache(String uniqueKey, DownloadInfo downloadInfo) {
+        memory.setCache(uniqueKey,downloadInfo);
+        local.setCache(uniqueKey,downloadInfo);
     }
 
     @Override
-    public DownloadInfo getCache(String id) {
-        if (!TextUtils.isEmpty(id)) {
-            DownloadInfo cache = memory.getCache(id);
+    public DownloadInfo getCache(String uniqueKey) {
+        if (!TextUtils.isEmpty(uniqueKey)) {
+            DownloadInfo cache = memory.getCache(uniqueKey);
             if (cache == null){
                 LogUtils.d(TAG+" 内存中没有，尝试去数据库查找");
-                cache = local.getCache(id);
+                cache = local.getCache(uniqueKey);
                 if (cache != null){
-                    memory.setCache(id,cache);
-                    LogUtils.d(TAG+" 获取到数据库缓存 当前下载位置 = "+cache.currentPos+" cache downloadUrl = "+cache.downloadUrl);
+                    memory.setCache(uniqueKey,cache);
+                    LogUtils.d(TAG+" 获取到数据库缓存 当前下载位置 = "+cache.getCurrentPos()+" cache downloadUrl = "+cache.getDownloadUrl());
                 }else{
                     LogUtils.d(TAG+" 数据库中也没有 返回null");
                 }
             }else{
-                LogUtils.d(TAG+" 获取到内存缓存 当前下载位置 = "+cache.currentPos+"  cache downloadUrl = "+cache.downloadUrl);
+                LogUtils.d(TAG+" 获取到内存缓存 当前下载位置 = "+cache.getCurrentPos()+"  cache downloadUrl = "+cache.getDownloadUrl());
             }
             return cache;
         }
@@ -45,9 +45,9 @@ public class DefaultCacheManager implements ICache<DownloadInfo> {
     }
 
     @Override
-    public int updateCache(String id, DownloadInfo downloadInfo) {
-        memory.updateCache(id,downloadInfo);
-        local.updateCache(id,downloadInfo);
+    public int updateCache(String uniqueKey, DownloadInfo downloadInfo) {
+        memory.updateCache(uniqueKey,downloadInfo);
+        local.updateCache(uniqueKey,downloadInfo);
         return 1;
     }
 }

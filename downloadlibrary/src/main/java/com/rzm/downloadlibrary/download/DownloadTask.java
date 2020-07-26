@@ -1,5 +1,6 @@
 package com.rzm.downloadlibrary.download;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.net.DefaultConnectionManager;
@@ -22,12 +23,13 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class DownloadTask implements Runnable {
+    private final Context context;
     //资源下载地址
     private String downloadUrl;
     //路径管理类
-    private IPath pathManager = new DefaultPathManager();
+    private IPath pathManager;
     //网络工具
-    private IConnection connManager = new DefaultConnectionManager();
+    private IConnection connManager;
     //开启几个线程下载
     public int threadCount = 1;
     //从下载链接中截取出来的文件名
@@ -45,8 +47,10 @@ public class DownloadTask implements Runnable {
     //下载是否暂停
     private volatile boolean pause = false;
 
-    public DownloadTask() {
-
+    public DownloadTask(Context context) {
+        this.context = context;
+        pathManager = new DefaultPathManager(context);
+        connManager = new DefaultConnectionManager();
     }
 
     /**

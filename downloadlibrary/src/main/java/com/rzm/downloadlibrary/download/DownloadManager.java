@@ -23,20 +23,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DownloadManager {
-    // 下载未开始
-    public static final int STATE_NONE = 0;
-    // 等待下载
-    public static final int STATE_WAITING = 1;
-    // 正在下载
-    public static final int STATE_DOWNLOAD = 2;
-    // 下载暂停
-    public static final int STATE_PAUSE = 3;
-    // 下载失败
-    public static final int STATE_ERROR = 4;
-    // 下载成功
-    public static final int STATE_SUCCESS = 5;
-
     private static DownloadManager instance;
+    private final Context context;
     private IPath pathManager;
     private ICache<DownloadInfo> cacheManager;
     private IThreadPool threadManager;
@@ -49,7 +37,8 @@ public class DownloadManager {
     private ConcurrentHashMap<String, DownloadTask> mDownloadTaskMap = new ConcurrentHashMap<String, DownloadTask>();
 
     private DownloadManager(Context context) {
-        pathManager = new DefaultPathManager();
+        this.context = context;
+        pathManager = new DefaultPathManager(context);
         cacheManager = new DefaultCacheManager(context);
         threadManager = new DefaultThreadPool();
         connManager = new DefaultConnectionManager();
@@ -109,29 +98,27 @@ public class DownloadManager {
         if (info == null) {
             throw new NullPointerException("downloadInfo is null");
         }
-        String downloadUrl = info.downloadUrl;
+        String downloadUrl = info.getDownloadUrl();
         if (TextUtils.isEmpty(downloadUrl)) {
             throw new NullPointerException("downloadUrl is null");
         }
-        String downloadMd5 = info.downloadMd5;
-        if (TextUtils.isEmpty(downloadMd5)) {
-            throw new NullPointerException("downloadMd5 is null");
+        String uniqueKey = info.getUniqueKey();
+        if (TextUtils.isEmpty(uniqueKey)) {
+            throw new NullPointerException("uniqueKey is null");
         }
-        DownloadInfo downloadInfo = cacheManager.getCache(downloadMd5);
+        DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
         if (downloadInfo == null) {
             // 如果为空,表示第一次下载
             downloadInfo = info;
         }
         // 下载状态更为正在等待
-        downloadInfo.currentState = STATE_WAITING;
-        // 通知状态发生变化,各观察者根据此通知更新主界面
+        downloadInfo.setCurrentState(DownloadInfo.STATE_WAITING);
         notifyDownloadStateChanged(downloadInfo);
-        // 将下载对象保存在集合中
-        cacheManager.setCache(downloadMd5, downloadInfo);
-        // 初始化下载任务
+        // 将下载对象保存在缓存中
+        cacheManager.setCache(uniqueKey, downloadInfo);
         final DownloadInfo finalInfo = downloadInfo;
-        DownloadTask downloadTask = new DownloadTask()
-                .setDownloadUrl(downloadInfo.downloadUrl)
+        DownloadTask downloadTask = new DownloadTask(context)
+                .setDownloadUrl(downloadInfo.getDownloadUrl())
                 .setSavePath(pathManager)
                 .setConnManager(connManager)
                 .setDownloadListener(new DownloadTask.DownloadListener() {
@@ -139,40 +126,34 @@ public class DownloadManager {
                     @Override
                     public void onStart() {
                         LogUtils.d("下载开始");
-                        finalInfo.currentState = STATE_DOWNLOAD;
-                        finalInfo.currentPos = 0;
-                        cacheManager.updateCache(finalInfo.downloadMd5, finalInfo);
+                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOAD);
+                        finalInfo.setCurrentPos(0);
+                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
                     }
 
                     @Override
                     public void onProgress(int current, int total) {
-                        finalInfo.currentPos = current;
-                        finalInfo.currentState = STATE_DOWNLOAD;
-                        finalInfo.size = total;
-                        cacheManager.updateCache(finalInfo.downloadMd5, finalInfo);
+                        finalInfo.setCurrentPos(current);
+                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOAD);
+                        finalInfo.setSize(total);
+                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
                     }
 
                     @Override
                     public void onPause() {
                         LogUtils.d("下载暂停");
-                        // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                        mDownloadTaskMap.remove(finalInfo.downloadMd5);
-                        finalInfo.currentState = STATE_PAUSE;
-                        cacheManager.updateCache(finalInfo.downloadMd5, finalInfo);
-                        // 更新下载状态为暂停
-                        notifyDownloadStateChanged(finalInfo);
                     }
 
                     @Override
                     public void onSuccess(String path) {
                         LogUtils.d("下载完成，保存地址为：" + path);
                         // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                        mDownloadTaskMap.remove(finalInfo.downloadMd5);
-                        finalInfo.currentState = STATE_SUCCESS;
-                        finalInfo.path = path;
-                        cacheManager.updateCache(finalInfo.downloadMd5, finalInfo);
+                        mDownloadTaskMap.remove(finalInfo.getUniqueKey());
+                        finalInfo.setCurrentState(DownloadInfo.STATE_SUCCESS);
+                        finalInfo.setPath(path);
+                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
                     }
 
@@ -180,10 +161,10 @@ public class DownloadManager {
                     public void onFailed(int failCode, String errorMessage) {
                         LogUtils.d("下载失败，code = " + failCode + " " + errorMessage);
                         // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                        mDownloadTaskMap.remove(finalInfo.downloadMd5);
-                        finalInfo.currentState = STATE_ERROR;
-                        finalInfo.currentPos = 0;
-                        cacheManager.updateCache(finalInfo.downloadMd5, finalInfo);
+                        mDownloadTaskMap.remove(finalInfo.getUniqueKey());
+                        finalInfo.setCurrentState(DownloadInfo.STATE_ERROR);
+                        finalInfo.setCurrentPos(0);
+                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
                     }
                 })
@@ -191,29 +172,36 @@ public class DownloadManager {
         // 启动下载任务
         threadManager.execute(downloadTask);
         // 将下载任务对象维护在集合当中
-        mDownloadTaskMap.put(downloadMd5, downloadTask);
+        mDownloadTaskMap.put(uniqueKey, downloadTask);
     }
 
     /**
      * 下载暂停
      */
-    public synchronized void pause(String downloadMd5) {
-        if (TextUtils.isEmpty(downloadMd5)) {
-            throw new NullPointerException("downloadMd5 is null");
+    public synchronized void pause(String uniqueKey) {
+        if (TextUtils.isEmpty(uniqueKey)) {
+            throw new NullPointerException("uniqueKey is null");
         }
-        DownloadInfo downloadInfo = cacheManager.getCache(downloadMd5);
+        DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
         if (downloadInfo == null) {
-            throw new NullPointerException(downloadMd5 + " is not in downloading");
+            throw new NullPointerException(uniqueKey + " is not in downloading");
         }
-        int state = downloadInfo.currentState;
+        int state = downloadInfo.getCurrentState();
         // 如果当前状态是等待下载或者正在下载, 需要暂停当前任务
-        if (state == STATE_WAITING || state == STATE_DOWNLOAD) {
+        if (state == DownloadInfo.STATE_WAITING || state == DownloadInfo.STATE_DOWNLOAD) {
             // 停止当前的下载任务
-            DownloadTask downloadTask = mDownloadTaskMap.get(downloadMd5);
+            DownloadTask downloadTask = mDownloadTaskMap.get(uniqueKey);
             if (downloadTask != null) {
                 //等待状态下直接从等待队列移除
                 downloadTask.pause(true);
                 threadManager.cancel(downloadTask);
+
+                // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
+                mDownloadTaskMap.remove(uniqueKey);
+                downloadInfo.setCurrentState(DownloadInfo.STATE_PAUSE);
+                cacheManager.updateCache(uniqueKey, downloadInfo);
+                // 更新下载状态为暂停
+                notifyDownloadStateChanged(downloadInfo);
             }
         }
     }
@@ -221,13 +209,13 @@ public class DownloadManager {
     /**
      * 安装apk
      */
-    public synchronized void install(Context context, String downloadMd5) {
-        if (TextUtils.isEmpty(downloadMd5)) {
-            throw new NullPointerException("downloadMd5 is null");
+    public synchronized void install(Context context, String uniqueKey) {
+        if (TextUtils.isEmpty(uniqueKey)) {
+            throw new NullPointerException("uniqueKey is null");
         }
-        DownloadInfo downloadInfo = cacheManager.getCache(downloadMd5);
+        DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
         if (downloadInfo != null) {
-            File file = new File(downloadInfo.path);
+            File file = new File(downloadInfo.getPath());
             if (!file.exists()) {
                 return;
             }
@@ -237,7 +225,7 @@ public class DownloadManager {
                 Uri data;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {//判断版本大于等于7.0
                     // 通过FileProvider创建一个content类型的Uri
-                    data = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
+                    data = FileProvider.getUriForFile(context, context.getPackageName() + ".download.fileprovider", file);
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);// 给目标应用一个临时授权
                 } else {
                     data = Uri.fromFile(file);
@@ -250,12 +238,16 @@ public class DownloadManager {
         }
     }
 
-    // 根据应用对象,获取对应的下载对象
-    public DownloadInfo getDownloadInfo(String downloadMd5) {
-        if (TextUtils.isEmpty(downloadMd5)) {
-            throw new NullPointerException("downloadMd5 is null");
+    /**
+     * 获取下载信息
+     * @param uniqueKey 本次下载唯一标识
+     * @return
+     */
+    public DownloadInfo getDownloadInfo(String uniqueKey) {
+        if (TextUtils.isEmpty(uniqueKey)) {
+            throw new NullPointerException("uniqueKey is null");
         }
-        return cacheManager.getCache(downloadMd5);
+        return cacheManager.getCache(uniqueKey);
     }
 
 

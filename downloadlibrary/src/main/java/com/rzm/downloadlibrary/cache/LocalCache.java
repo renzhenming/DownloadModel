@@ -14,12 +14,12 @@ public class LocalCache {
         databaseHelper = new DatabaseHelper(context);
     }
 
-    public long setCache(String id, DownloadInfo downloadInfo) {
+    public long setCache(String uniqueKey, DownloadInfo downloadInfo) {
         return databaseHelper.insert(downloadInfo);
     }
 
-    public DownloadInfo getCache(String id) {
-        List<DownloadInfo> downloadInfos = databaseHelper.queryById(id);
+    public DownloadInfo getCache(String uniqueKey) {
+        List<DownloadInfo> downloadInfos = databaseHelper.queryByKey(uniqueKey);
         if (downloadInfos != null && downloadInfos.size() > 0) {
             return downloadInfos.get(0);
         } else {
@@ -27,17 +27,13 @@ public class LocalCache {
         }
     }
 
-    public List<DownloadInfo> getCacheByPkg(String packageName) {
-        return databaseHelper.queryById(packageName);
-    }
-
-    public int updateCache(String id, DownloadInfo downloadInfo) {
-        int update = databaseHelper.update(id, downloadInfo);
+    public int updateCache(String uniqueKey, DownloadInfo downloadInfo) {
+        int update = databaseHelper.update(uniqueKey, downloadInfo);
         return update;
     }
 
-    public int deleteCache(String id) {
-        int delete = databaseHelper.delete(id);
+    public int deleteCache(String uniqueKey) {
+        int delete = databaseHelper.delete(uniqueKey);
         return delete;
     }
 }

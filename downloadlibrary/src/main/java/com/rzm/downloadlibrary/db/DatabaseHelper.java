@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.download.DownloadInfo;
+import com.rzm.downloadlibrary.utils.LogUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +19,14 @@ import java.util.List;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
-    private static final String DATABASE_NAME = "wifi_sdk.db";
+    private static final String DATABASE_NAME = "download_asset.db";
     private static final int DATABASE_VERSION = 1;
 
     public static final String TABLE_NAME = "download";
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_NAME = "name";
     public static final String COLUMN_SIZE = "size";
-    public static final String COLUMN_MD5 = "downloadMd5";
+    public static final String COLUMN_UNIQUE_KEY = "uniqueKey";
     public static final String COLUMN_PKG = "packageName";
     public static final String COLUMN_URL = "downloadUrl";
 
@@ -45,7 +46,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_ID + " text primary key,"
                 + COLUMN_NAME + " text,"
                 + COLUMN_SIZE + " integer,"
-                + COLUMN_MD5 + " text,"
+                + COLUMN_UNIQUE_KEY + " text,"
                 + COLUMN_PKG + " text,"
                 + COLUMN_URL + " text,"
                 + COLUMN_STATE + " integer,"
@@ -60,31 +61,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-
     public synchronized long insert(DownloadInfo info) {
         if (info == null) return -1;
-        List<DownloadInfo> downloadInfos = queryById(info.id);
+        List<DownloadInfo> downloadInfo = queryByKey(info.getUniqueKey());
         SQLiteDatabase db = getWritableDatabase();
 
         long insert = -1;
         //如果不存在，则新增
-        if (downloadInfos == null || downloadInfos.size() == 0) {
+        if (downloadInfo == null || downloadInfo.size() == 0) {
             ContentValues values = new ContentValues();
-            values.put(COLUMN_ID, info.id);
-            values.put(COLUMN_NAME, info.name);
-            values.put(COLUMN_SIZE, info.size);
-            values.put(COLUMN_MD5, info.downloadMd5);
-            values.put(COLUMN_PKG, info.packageName);
-            values.put(COLUMN_URL, info.downloadUrl);
-            values.put(COLUMN_STATE, info.currentState);
-            values.put(COLUMN_POSITION, info.currentPos);
-            values.put(COLUMN_PATH, info.path);
+            values.put(COLUMN_ID, info.getId());
+            values.put(COLUMN_NAME, info.getName());
+            values.put(COLUMN_SIZE, info.getSize());
+            values.put(COLUMN_UNIQUE_KEY, info.getUniqueKey());
+            values.put(COLUMN_PKG, info.getPackageName());
+            values.put(COLUMN_URL, info.getDownloadUrl());
+            values.put(COLUMN_STATE, info.getCurrentState());
+            values.put(COLUMN_POSITION, info.getCurrentPos());
+            values.put(COLUMN_PATH, info.getPath());
             insert = db.insert(TABLE_NAME, null, values);
         } else {
             //已存在，则更新
-            insert = update(info.id, info);
+            insert = update(info.getUniqueKey(), info);
         }
-        //多线程操作数据库会导致问题，所以每次操作之后不关闭
         db.close();
         return insert;
     }
@@ -98,31 +97,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
 
-    public synchronized int update(String id, DownloadInfo info) {
-        if (TextUtils.isEmpty(id) || info == null) {
+    public synchronized int update(String uniqueKey, DownloadInfo info) {
+        if (TextUtils.isEmpty(uniqueKey) || info == null) {
             return 0;
         }
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_ID, info.id);
-        values.put(COLUMN_NAME, info.name);
-        values.put(COLUMN_SIZE, info.size);
-        values.put(COLUMN_MD5, info.downloadMd5);
-        values.put(COLUMN_PKG, info.packageName);
-        values.put(COLUMN_URL, info.downloadUrl);
-        values.put(COLUMN_STATE, info.currentState);
-        values.put(COLUMN_POSITION, info.currentPos);
-        values.put(COLUMN_PATH, info.path);
-        int update = db.update(TABLE_NAME, values, COLUMN_ID + "=?", new String[]{id});
+        values.put(COLUMN_ID, info.getId());
+        values.put(COLUMN_NAME, info.getName());
+        values.put(COLUMN_SIZE, info.getSize());
+        values.put(COLUMN_UNIQUE_KEY, info.getUniqueKey());
+        values.put(COLUMN_PKG, info.getPackageName());
+        values.put(COLUMN_URL, info.getDownloadUrl());
+        values.put(COLUMN_STATE, info.getCurrentState());
+        values.put(COLUMN_POSITION, info.getCurrentPos());
+        values.put(COLUMN_PATH, info.getPath());
+        int update = db.update(TABLE_NAME, values, COLUMN_UNIQUE_KEY + "=?", new String[]{uniqueKey});
         db.close();
         return update;
     }
 
-    public synchronized List<DownloadInfo> queryById(String downloadId) {
-        if (TextUtils.isEmpty(downloadId)) return null;
+    public synchronized List<DownloadInfo> queryByKey(String uniqueKey) {
+        return queryByKey(COLUMN_UNIQUE_KEY + "=?", uniqueKey);
+    }
+
+    private synchronized List<DownloadInfo> queryByKey(String column, String key) {
+        long start = System.currentTimeMillis();
+        if (TextUtils.isEmpty(key)) return null;
         SQLiteDatabase db = getWritableDatabase();
-        Cursor cursor = db.query(TABLE_NAME, null, COLUMN_ID + "=?", new String[]{downloadId}, null, null, null);
-        List<DownloadInfo> downloadInfos = new ArrayList<>();
+        Cursor cursor = db.query(TABLE_NAME, null, column, new String[]{key}, null, null, null);
+        List<DownloadInfo> downloadInfo = new ArrayList<>();
         while (cursor.moveToNext()) {
             int idIndex = cursor.getColumnIndex(COLUMN_ID);
             int nameIndex = cursor.getColumnIndex(COLUMN_NAME);
@@ -132,7 +136,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             int stateIndex = cursor.getColumnIndex(COLUMN_STATE);
             int positionIndex = cursor.getColumnIndex(COLUMN_POSITION);
             int pathIndex = cursor.getColumnIndex(COLUMN_PATH);
-            int md5Index = cursor.getColumnIndex(COLUMN_MD5);
+            int uniqueKeyIndex = cursor.getColumnIndex(COLUMN_UNIQUE_KEY);
             int pkgIndex = cursor.getColumnIndex(COLUMN_PKG);
 
             String id = cursor.getString(idIndex);
@@ -142,26 +146,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             int state = cursor.getInt(stateIndex);
             int position = cursor.getInt(positionIndex);
             String path = cursor.getString(pathIndex);
-            String md5 = cursor.getString(md5Index);
+            String uniqueKey = cursor.getString(uniqueKeyIndex);
             String pkg = cursor.getString(pkgIndex);
 
             DownloadInfo info = new DownloadInfo.Builder().build();
-            info.id = id;
-            info.name = name;
-            info.size = size;
-            info.downloadUrl = url;
-            info.currentState = state;
-            info.currentPos = position;
-            info.path = path;
-            info.downloadMd5 = md5;
-            info.packageName = pkg;
-            downloadInfos.add(info);
+            info.setId(id);
+            info.setName(name);
+            info.setSize(size);
+            info.setDownloadUrl(url);
+            info.setCurrentState(state);
+            info.setCurrentPos(position);
+            info.setPath(path);
+            info.setUniqueKey(uniqueKey);
+            info.setPackageName(pkg);
+            downloadInfo.add(info);
         }
         db.close();
-        return downloadInfos;
+        long end = System.currentTimeMillis();
+        LogUtils.d("查询一次消耗的时间是：" + (end - start));
+        return downloadInfo;
     }
 
-    public List<DownloadInfo> queryAll() {
-        return new ArrayList<>();
+    public synchronized List<DownloadInfo> queryAll() {
+        return queryByKey(null, null);
     }
 }

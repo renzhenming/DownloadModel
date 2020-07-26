@@ -15,5 +15,12 @@
     <!--external-path 是放到sd卡的目录下 Environment.getExternalStorageDirectory()-->
     <!--path="." 代表共享 sd卡下的所有目录。手机会遍历sd卡下的所有目录，来匹配你要安装 的apk 的目录。。-->
     <!--name="." 代表 你apk存放目录下所有apk的名字都会遍历一遍，然后跟你要安装的apk进行匹配-->
-    <external-path name="extenal" path="."/>
+    <!--external-path name值随意些似乎都没问题,除了不能写成"."-->
+    <!--files-path name值随意些似乎都没问题,包括"."-->
+    <external-path
+        name="external_storage_root"
+        path="." />
+    <files-path
+        name="."
+        path="." />
 </paths>

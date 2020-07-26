@@ -15,15 +15,15 @@ public class MemoryCache {
         LogUtils.d(TAG+"lruCache size = "+(int) (Runtime.getRuntime().maxMemory()/8));
     }
 
-    public  void setCache(String id,DownloadInfo t){
-        lruCache.put(id,t);
+    public  void setCache(String uniqueKey,DownloadInfo t){
+        lruCache.put(uniqueKey,t);
     }
 
-    public DownloadInfo getCache(String id){
-        return lruCache.get(id);
+    public DownloadInfo getCache(String uniqueKey){
+        return lruCache.get(uniqueKey);
     }
 
-    public void updateCache(String id, DownloadInfo downloadInfo) {
-        setCache( id, downloadInfo);
+    public void updateCache(String uniqueKey, DownloadInfo downloadInfo) {
+        setCache( uniqueKey, downloadInfo);
     }
 }

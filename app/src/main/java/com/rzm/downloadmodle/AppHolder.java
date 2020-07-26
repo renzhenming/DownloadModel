@@ -33,18 +33,13 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         mDownloadManager = DownloadManager.getInstance(context);
         // 监听下载进度
         mDownloadManager.registerObserver(this);
-
+        mCurrentState = DownloadInfo.STATE_NONE;
+        mProgress = 0;
         DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.downloadMd5);
-        if (downloadInfo == null) {
-            // 没有下载过
-            mCurrentState = DownloadManager.STATE_NONE;
-            mProgress = 0;
-        } else {
-            // 之前下载过, 以内存中的对象的状态为准
-            mCurrentState = downloadInfo.currentState;
+        if (downloadInfo != null) {
             mProgress = downloadInfo.getProgress();
+            mCurrentState = downloadInfo.getCurrentState();
         }
-
         refreshUI(mProgress, mCurrentState, appInfo.downloadUrl);
     }
 
@@ -56,27 +51,27 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         mCurrentState = state;
         mProgress = progress;
         switch (state) {
-            case DownloadManager.STATE_NONE:
+            case DownloadInfo.STATE_NONE:
                 pbProgress.setPercent(0);
                 // 文字为下载
                 pbProgress.setText("下载");
                 break;
-            case DownloadManager.STATE_WAITING:
+            case DownloadInfo.STATE_WAITING:
                 pbProgress.setPercent(progress);
                 pbProgress.setText("等待");
                 break;
-            case DownloadManager.STATE_DOWNLOAD:
+            case DownloadInfo.STATE_DOWNLOAD:
                 pbProgress.setPercent(progress);
                 break;
-            case DownloadManager.STATE_PAUSE:
+            case DownloadInfo.STATE_PAUSE:
                 pbProgress.setPercent(progress);
                 pbProgress.setText("继续");
                 break;
-            case DownloadManager.STATE_ERROR:
+            case DownloadInfo.STATE_ERROR:
                 pbProgress.setPercent(progress);
                 pbProgress.setText("重试");
                 break;
-            case DownloadManager.STATE_SUCCESS:
+            case DownloadInfo.STATE_SUCCESS:
                 pbProgress.setPercent(1);
                 pbProgress.setText("安装");
                 break;
@@ -89,8 +84,8 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
     @Override
     public void onDownloadStateChanged(DownloadInfo info) {
         // 判断要刷新的下载对象是否是当前的应用
-        if (info.downloadUrl.equals(mAppInfo.downloadUrl)) {
-            refreshUI(info.getProgress(), info.currentState, info.downloadUrl);
+        if (info.getDownloadUrl().equals(mAppInfo.downloadUrl)) {
+            refreshUI(info.getProgress(), info.getCurrentState(), info.getDownloadUrl());
         }
     }
 
@@ -99,22 +94,19 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         switch (v.getId()) {
             case R.id.progress:
                 // 根据当前状态来决定相关操作
-                if (mCurrentState == DownloadManager.STATE_NONE
-                        || mCurrentState == DownloadManager.STATE_PAUSE
-                        || mCurrentState == DownloadManager.STATE_ERROR) {
+                if (DownloadInfo.checkStart(mCurrentState)) {
                     // 开始下载
                     mDownloadManager.download(new DownloadInfo.Builder()
                             .setDownloadUrl(mAppInfo.downloadUrl)
                             //downloadMd5作为本次下载的唯一标识存在
-                            .setDownloadMd5(mAppInfo.downloadMd5)
+                            .setUniqueKey(mAppInfo.downloadMd5)
                             .setName(mAppInfo.name)
                             .build()
                     );
-                } else if (mCurrentState == DownloadManager.STATE_DOWNLOAD
-                        || mCurrentState == DownloadManager.STATE_WAITING) {
+                } else if (DownloadInfo.checkPause(mCurrentState)) {
                     // 暂停下载
                     mDownloadManager.pause(mAppInfo.downloadMd5);
-                } else if (mCurrentState == DownloadManager.STATE_SUCCESS) {
+                } else if (DownloadInfo.checkInstall(mCurrentState)) {
                     // 开始安装
                     mDownloadManager.install(context, mAppInfo.downloadMd5);
                 }

@@ -33,17 +33,17 @@ public class MainActivity extends AppCompatActivity {
                     "download/com.snda.wifilocating.apk"};
 
     public String remoteUrl[] = new String[]
-            {"https://imtt.dd.qq.com/16891/apk/331C4209508B757889510B1F2CC1F2D1.apk?fsname=com.shoujiduoduo.ringtone_8.8.08.0_60088080.apk",
-                    "https://imtt.dd.qq.com/16891/apk/D666376AF755BF5FDD5749D74EA8DE00.apk?fsname=com.sohu.inputmethod.sogou_10.13_1260.apk",
-                    "https://imtt.dd.qq.com/16891/apk/CC704E92B9F62C1ABB251591B6757285.apk?fsname=com.ss.android.article.video_4.6.4_464.apk",
-                    "https://imtt.dd.qq.com/16891/apk/3A978AFC298B5DF5A692AF89C1AAA135.apk?fsname=com.icoolme.android.weather_6.05.001.20200703_2052000032.apk",
-                    "https://imtt.dd.qq.com/16891/apk/0DF5D9BD8BE2E46D1C212402EA18BC7F.apk?fsname=com.xunlei.downloadprovider_6.26.2.7020_12020.apk",
-                    "https://imtt.dd.qq.com/16891/apk/1B9A41070168C4F3E60DA9AB462858E1.apk?fsname=com.moji.mjweather_8.0308.02_8030802.apk",
-                    "https://imtt.dd.qq.com/16891/apk/D3B1E8522F32826E9489A40EA6069D5F.apk?fsname=com.tencent.qqgame_6.9.1_60995.apk",
-                    "https://imtt.dd.qq.com/16891/apk/E43F654573F041E3D2F7C1399484296B.apk?fsname=sina.mobile.tianqitong_6.38_322.apk",
-                    "https://imtt.dd.qq.com/16891/apk/09D3845A5D20BC43753427E6A63051AF.apk?fsname=com.ifreetalk.ftalk_7.0.022_10700022.apk",
-                    "https://imtt.dd.qq.com/16891/apk/EAAA23790E9A633BF6D9AF48FC03AA91.apk?fsname=com.nuomi_8.6.18_452.apk",
-                    "https://imtt.dd.qq.com/16891/apk/0252670A109E3886370931CFA284C6E3.apk?fsname=com.shuqi.controller_11.1.5.113_195.apk"};
+            {"https://imtt.dd.qq.com/16891/apk/331C4209508B757889510B1F2CC1F2D1.apk",
+                    "https://imtt.dd.qq.com/16891/apk/D666376AF755BF5FDD5749D74EA8DE00.apk",
+                    "https://imtt.dd.qq.com/16891/apk/CC704E92B9F62C1ABB251591B6757285.apk",
+                    "https://imtt.dd.qq.com/16891/apk/3A978AFC298B5DF5A692AF89C1AAA135.apk",
+                    "https://imtt.dd.qq.com/16891/apk/0DF5D9BD8BE2E46D1C212402EA18BC7F.apk",
+                    "https://imtt.dd.qq.com/16891/apk/1B9A41070168C4F3E60DA9AB462858E1.apk",
+                    "https://imtt.dd.qq.com/16891/apk/D3B1E8522F32826E9489A40EA6069D5F.apk",
+                    "https://imtt.dd.qq.com/16891/apk/E43F654573F041E3D2F7C1399484296B.apk",
+                    "https://imtt.dd.qq.com/16891/apk/09D3845A5D20BC43753427E6A63051AF.apk",
+                    "https://imtt.dd.qq.com/16891/apk/EAAA23790E9A633BF6D9AF48FC03AA91.apk",
+                    "https://imtt.dd.qq.com/16891/apk/0252670A109E3886370931CFA284C6E3.apk"};
     private RecyclerView recyclerView;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
