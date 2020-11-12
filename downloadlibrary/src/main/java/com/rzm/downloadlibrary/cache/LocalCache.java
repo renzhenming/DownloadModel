@@ -11,7 +11,7 @@ public class LocalCache {
     private final DatabaseHelper databaseHelper;
 
     public LocalCache(Context context) {
-        databaseHelper = new DatabaseHelper(context);
+        databaseHelper = DatabaseHelper.getInstance(context);
     }
 
     public long setCache(String uniqueKey, DownloadInfo downloadInfo) {
@@ -35,5 +35,9 @@ public class LocalCache {
     public int deleteCache(String uniqueKey) {
         int delete = databaseHelper.delete(uniqueKey);
         return delete;
+    }
+
+    public List<DownloadInfo> queryByPkgName(String packageName) {
+        return databaseHelper.queryByPkgName(packageName);
     }
 }

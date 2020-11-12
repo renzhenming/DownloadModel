@@ -3,8 +3,11 @@ package com.rzm.downloadlibrary.cache;
 import android.content.Context;
 import android.text.TextUtils;
 
+import com.rzm.downloadlibrary.db.DatabaseHelper;
 import com.rzm.downloadlibrary.download.DownloadInfo;
 import com.rzm.downloadlibrary.utils.LogUtils;
+
+import java.util.List;
 
 public class DefaultCacheManager implements ICache<DownloadInfo> {
 
@@ -42,6 +45,11 @@ public class DefaultCacheManager implements ICache<DownloadInfo> {
             return cache;
         }
         return null;
+    }
+
+    @Override
+    public List<DownloadInfo> getCacheByPkgName(String packageName) {
+        return local.queryByPkgName(packageName);
     }
 
     @Override

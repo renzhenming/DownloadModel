@@ -11,6 +11,7 @@ import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.cache.DefaultCacheManager;
 import com.rzm.downloadlibrary.cache.ICache;
+import com.rzm.downloadlibrary.db.DatabaseHelper;
 import com.rzm.downloadlibrary.net.DefaultConnectionManager;
 import com.rzm.downloadlibrary.net.IConnection;
 import com.rzm.downloadlibrary.path.DefaultPathManager;
@@ -18,8 +19,10 @@ import com.rzm.downloadlibrary.path.IPath;
 import com.rzm.downloadlibrary.thread.DefaultThreadPool;
 import com.rzm.downloadlibrary.thread.IThreadPool;
 import com.rzm.downloadlibrary.utils.LogUtils;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DownloadManager {
@@ -240,6 +243,7 @@ public class DownloadManager {
 
     /**
      * 获取下载信息
+     *
      * @param uniqueKey 本次下载唯一标识
      * @return
      */
@@ -250,6 +254,12 @@ public class DownloadManager {
         return cacheManager.getCache(uniqueKey);
     }
 
+    public List<DownloadInfo> getDownloadInfoByPkgName(String packageName) {
+        if (TextUtils.isEmpty(packageName)) {
+            throw new NullPointerException("getDownloadInfoByPkgName packageName is null");
+        }
+        return cacheManager.getCacheByPkgName(packageName);
+    }
 
     public synchronized void registerObserver(DownloadObserver observer) {
         if (observer != null && !mObservers.contains(observer)) {

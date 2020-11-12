@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.download.DownloadInfo;
+import com.rzm.downloadlibrary.download.DownloadManager;
 import com.rzm.downloadlibrary.utils.LogUtils;
 
 import java.util.ArrayList;
@@ -18,6 +19,8 @@ import java.util.List;
  */
 
 public class DatabaseHelper extends SQLiteOpenHelper {
+
+    private static DatabaseHelper instance;
 
     private static final String DATABASE_NAME = "download_asset.db";
     private static final int DATABASE_VERSION = 1;
@@ -34,8 +37,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_POSITION = "currentPos";
     public static final String COLUMN_PATH = "path";
 
+    public static DatabaseHelper getInstance(Context context) {
+        if (instance == null) {
+            synchronized (DatabaseHelper.class) {
+                if (instance == null) {
+                    instance = new DatabaseHelper(context);
+                }
+            }
+        }
+        return instance;
+    }
 
-    public DatabaseHelper(Context context) {
+    private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -121,11 +134,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return queryByKey(COLUMN_UNIQUE_KEY + "=?", uniqueKey);
     }
 
-    private synchronized List<DownloadInfo> queryByKey(String column, String key) {
+    public synchronized List<DownloadInfo> queryByPkgName(String packageName) {
+        return queryByKey(COLUMN_PKG + "=?", packageName);
+    }
+
+    private synchronized List<DownloadInfo> queryByKey(String column, String value) {
         long start = System.currentTimeMillis();
-        if (TextUtils.isEmpty(key)) return null;
+        if (TextUtils.isEmpty(value)) return null;
         SQLiteDatabase db = getWritableDatabase();
-        Cursor cursor = db.query(TABLE_NAME, null, column, new String[]{key}, null, null, null);
+        Cursor cursor = db.query(TABLE_NAME, null, column, new String[]{value}, null, null, null);
         List<DownloadInfo> downloadInfo = new ArrayList<>();
         while (cursor.moveToNext()) {
             int idIndex = cursor.getColumnIndex(COLUMN_ID);

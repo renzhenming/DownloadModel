@@ -36,6 +36,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         mCurrentState = DownloadInfo.STATE_NONE;
         mProgress = 0;
         DownloadInfo downloadInfo = mDownloadManager.getDownloadInfo(appInfo.downloadMd5);
+        mDownloadManager.getDownloadInfoByPkgName(context.getPackageName());
         if (downloadInfo != null) {
             mProgress = downloadInfo.getProgress();
             mCurrentState = downloadInfo.getCurrentState();
