@@ -25,7 +25,7 @@
         <!--Android 7.0适配-应用之间共享文件 -->
         <provider
             android:name="android.support.v4.content.FileProvider"
-            android:authorities="com.rzm.downloadmodle.download.fileprovider"
+            android:authorities="com.rzm.downloadmodle.rzm.download.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

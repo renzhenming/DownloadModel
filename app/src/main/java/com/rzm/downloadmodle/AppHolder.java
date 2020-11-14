@@ -61,7 +61,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
                 pbProgress.setPercent(progress);
                 pbProgress.setText("等待");
                 break;
-            case DownloadInfo.STATE_DOWNLOAD:
+            case DownloadInfo.STATE_DOWNLOADING:
                 pbProgress.setPercent(progress);
                 break;
             case DownloadInfo.STATE_PAUSE:

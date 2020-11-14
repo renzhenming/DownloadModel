@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class DownloadTask implements Runnable {
-    private final Context context;
     //资源下载地址
     private String downloadUrl;
     //路径管理类
@@ -48,7 +47,6 @@ public class DownloadTask implements Runnable {
     private volatile boolean pause = false;
 
     public DownloadTask(Context context) {
-        this.context = context;
         pathManager = new DefaultPathManager(context);
         connManager = new DefaultConnectionManager();
     }
@@ -61,6 +59,17 @@ public class DownloadTask implements Runnable {
      */
     public DownloadTask setDownloadUrl(String downloadUrl) {
         this.downloadUrl = downloadUrl;
+        return this;
+    }
+
+    /**
+     * 资源名:如果设置了名字，就使用，否则从url中提取
+     *
+     * @param downloadName
+     * @return
+     */
+    public DownloadTask setDownloadName(String downloadName) {
+        this.fileName = downloadName;
         return this;
     }
 
@@ -110,8 +119,10 @@ public class DownloadTask implements Runnable {
     }
 
     public DownloadTask build() {
-        if (!new File(pathManager.downloadPath()).isDirectory())
-            new File(pathManager.downloadPath()).mkdirs();
+        File file = new File(pathManager.downloadPath());
+        if (!file.exists() || !file.isDirectory()) {
+            file.mkdirs();
+        }
         downloadThreads = new ArrayList<>(threadCount);
         countDownLatch = new CountDownLatch(threadCount);
         downloadPath = pathManager.downloadPath();
@@ -134,7 +145,7 @@ public class DownloadTask implements Runnable {
         //根据资源的大小和线程数量计算每个线程下载文件的大小，还要计算每个线程下载的开始位置和结束位置。
         int blockSize = fileTotalLength / threadCount;//每个线程下载的大小
         //循环计算每个线程的开始位置和结束位置
-        LogUtils.d("开启" + threadCount + "个线程开始下载，每个线程需要下载的资源长度为：" + blockSize);
+        LogUtils.d("start " + threadCount + "thread to download each download length is ：" + blockSize);
         for (int threadId = 0; threadId < threadCount; threadId++) {
             //线程的开始下载位置
             int startIndex = threadId * blockSize;
@@ -144,7 +155,7 @@ public class DownloadTask implements Runnable {
             if (threadId == threadCount - 1) {
                 endIndex = fileTotalLength - 1;
             }
-            LogUtils.d("线程" + threadId + "下载的开始位置:" + startIndex + " 结束下载的位置：" + endIndex);
+            LogUtils.d("thread" + threadId + "begin at :" + startIndex + " and end at ：" + endIndex);
             //开启这些线程去下载
             DownloadThread downloadThread = new DownloadThread(downloadUrl, downloadPath, threadId, startIndex, endIndex, countDownLatch);
             downloadThreads.add(downloadThread);
@@ -153,43 +164,21 @@ public class DownloadTask implements Runnable {
     }
 
     private void startFinishThread(String downloadUrl) {
-        Thread thread1 = new Thread(new FinishThread(downloadUrl));
-        thread1.start();
+        FinishThread finishThread = new FinishThread(downloadUrl);
+        new Thread(finishThread).start();
     }
 
-    private void starProgressTask(List<DownloadThread> downloadThreads, int fileTotalLength, DownloadListener downloadListener) throws InterruptedException {
-        while (true) {
-            int downloadSize = 0;
-            for (DownloadThread downloadThread : downloadThreads) {
-                downloadSize += downloadThread.getDownloadSize();
-            }
-            float percent = (downloadSize * 1.0f) / (fileTotalLength * 1.0f) * 100;
-            if (downloadListener != null) {
-                if (pause) {
-                    downloadListener.onPause();
-                    LogUtils.d("下载暂停，跳出进度循环");
-                    break;
-                } else {
-                    if (percent == 0) {
-                        continue;
-                    }
-                    downloadListener.onProgress(downloadSize, fileTotalLength);
-                }
-            }
-            if (percent >= 100) {
-                break;
-            }
-        }
+    private void starProgressTask(List<DownloadThread> downloadThreads, int fileTotalLength) {
+        ProgressThread progressThread = new ProgressThread();
+        new Thread(progressThread).start();
     }
 
     @Override
     public void run() {
         try {
-            if (downloadListener != null) {
-                downloadListener.onStart();
-            }
+            onDownloadStart();
             int contentLength = connManager.getContentLength(downloadUrl);
-            LogUtils.d("获取到资源长度：" + contentLength);
+            LogUtils.d("asset length = " + contentLength);
             if (contentLength > 0) {
                 fileTotalLength = contentLength;
                 createSameSizeFile(downloadPath, fileTotalLength);
@@ -198,16 +187,65 @@ public class DownloadTask implements Runnable {
                         countDownLatch, downloadThreads);
                 //开启等待完成线程
                 startFinishThread(downloadUrl);
-                starProgressTask(downloadThreads, fileTotalLength, downloadListener);
+                starProgressTask(downloadThreads, fileTotalLength);
             } else {
-                if (downloadListener != null) {
-                    downloadListener.onFailed(-1, "contentLength < 0");
-                }
+                onDownloadFailed(-1, "contentLength < 0");
             }
         } catch (Exception e1) {
             e1.printStackTrace();
-            if (downloadListener != null) {
-                downloadListener.onFailed(-1, e1.toString());
+            onDownloadFailed(-1, e1.toString());
+        }
+    }
+
+    private void onDownloadStart() {
+        if (downloadListener != null) {
+            downloadListener.onStart(downloadUrl);
+        }
+    }
+
+    private void onDownloadProgress(int downloadSize, int fileTotalLength) {
+        if (downloadListener != null) {
+            downloadListener.onProgress(downloadSize, fileTotalLength);
+        }
+    }
+
+    private void onDownloadPause() {
+        if (downloadListener != null) {
+            downloadListener.onPause(downloadUrl);
+        }
+    }
+
+    private void onDownloadSuccess(String downloadUrl, String path) {
+        if (downloadListener != null) {
+            downloadListener.onSuccess(downloadUrl, path);
+        }
+    }
+
+    private void onDownloadFailed(int code, String message) {
+        if (downloadListener != null) {
+            downloadListener.onFailed(downloadUrl, code, message);
+        }
+    }
+
+    class ProgressThread implements Runnable {
+        @Override
+        public void run() {
+            while (true) {
+                int downloadSize = 0;
+                for (DownloadThread downloadThread : downloadThreads) {
+                    downloadSize += downloadThread.getDownloadSize();
+                }
+                float percent = (downloadSize * 1.0f) / (fileTotalLength * 1.0f) * 100;
+                if (percent >= 100) {
+                    break;
+                }
+                if (pause) {
+                    onDownloadPause();
+                    LogUtils.d("download " + downloadUrl + " pause, break loop");
+                    break;
+                } else {
+                    onDownloadProgress(downloadSize, fileTotalLength);
+                }
             }
         }
     }
@@ -233,25 +271,23 @@ public class DownloadTask implements Runnable {
                 File downloadFile = new File(pathManager.downloadPath() + File.separator + getFileName() + ".tmp");
                 File destFile = new File(pathManager.downloadPath() + File.separator + getFileName());
                 downloadFile.renameTo(destFile);
-                LogUtils.d("全部下载完成 downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
+                LogUtils.d("all download finished, downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
                 //下载完毕清空临时文件
                 for (int threadId = 0; threadId < threadCount; threadId++) {
                     new File(pathManager.downloadPath() + File.separator + randomTempFileStr + threadId + ".txt").delete();
                 }
-                LogUtils.d("删除临时文件完成");
-                if (downloadListener != null && destFile.length() == fileTotalLength) {
-                    downloadListener.onSuccess(pathManager.downloadPath() + File.separator + getFileName());
+                LogUtils.d("temp file deleted");
+                if (destFile.length() == fileTotalLength) {
+                    LogUtils.d("download success url = " + downloadUrl);
+                    onDownloadSuccess(downloadUrl, pathManager.downloadPath() + File.separator + getFileName());
                 } else {
+                    LogUtils.d("download " + downloadUrl + " fail destFile.length() != fileTotalLength ");
                     destFile.delete();
-                    if (downloadListener != null) {
-                        downloadListener.onFailed(-1, "download file finish, but file is illegal");
-                    }
+                    onDownloadFailed(-1, "download file finish, but file is illegal");
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                if (downloadListener != null) {
-                    downloadListener.onFailed(-1, "thread was interrupt");
-                }
+                onDownloadFailed(-1, "thread was interrupt");
             }
         }
     }
@@ -359,14 +395,31 @@ public class DownloadTask implements Runnable {
     }
 
     public interface DownloadListener {
-        void onSuccess(String path);
+        void onSuccess(String downloadUrl, String path);
 
-        void onFailed(int failCode, String errorMessage);
+        void onFailed(String downloadUrl, int failCode, String errorMessage);
 
-        void onStart();
+        void onStart(String downloadUrl);
 
         void onProgress(int current, int total);
 
-        void onPause();
+        void onPause(String downloadUrl);
+    }
+
+    public String getDownloadUrl() {
+        return downloadUrl;
+    }
+
+    public String getDownloadPath() {
+        return downloadPath;
+    }
+
+    public int getFileTotalLength() {
+        return fileTotalLength;
+    }
+
+    public int getThreadCount() {
+        return threadCount;
     }
 }
+

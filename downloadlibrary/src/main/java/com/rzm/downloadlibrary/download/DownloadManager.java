@@ -11,7 +11,6 @@ import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.cache.DefaultCacheManager;
 import com.rzm.downloadlibrary.cache.ICache;
-import com.rzm.downloadlibrary.db.DatabaseHelper;
 import com.rzm.downloadlibrary.net.DefaultConnectionManager;
 import com.rzm.downloadlibrary.net.IConnection;
 import com.rzm.downloadlibrary.path.DefaultPathManager;
@@ -105,7 +104,7 @@ public class DownloadManager {
         if (TextUtils.isEmpty(downloadUrl)) {
             throw new NullPointerException("downloadUrl is null");
         }
-        String uniqueKey = info.getUniqueKey();
+        final String uniqueKey = info.getUniqueKey();
         if (TextUtils.isEmpty(uniqueKey)) {
             throw new NullPointerException("uniqueKey is null");
         }
@@ -114,22 +113,26 @@ public class DownloadManager {
             // 如果为空,表示第一次下载
             downloadInfo = info;
         }
+        if (downloadInfo.getCurrentState() == DownloadInfo.STATE_DOWNLOADING) {
+            LogUtils.d("download already begin, return url = " + downloadInfo.getDownloadUrl());
+            return;
+        }
         // 下载状态更为正在等待
         downloadInfo.setCurrentState(DownloadInfo.STATE_WAITING);
         notifyDownloadStateChanged(downloadInfo);
         // 将下载对象保存在缓存中
         cacheManager.setCache(uniqueKey, downloadInfo);
         final DownloadInfo finalInfo = downloadInfo;
-        DownloadTask downloadTask = new DownloadTask(context)
+        final DownloadTask downloadTask = new DownloadTask(context)
                 .setDownloadUrl(downloadInfo.getDownloadUrl())
                 .setSavePath(pathManager)
                 .setConnManager(connManager)
                 .setDownloadListener(new DownloadTask.DownloadListener() {
 
                     @Override
-                    public void onStart() {
-                        LogUtils.d("下载开始");
-                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOAD);
+                    public void onStart(String downloadUrl) {
+                        LogUtils.d("DownloadTask onStart downloadUrl = " + downloadUrl);
+                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
                         finalInfo.setCurrentPos(0);
                         cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
@@ -138,20 +141,20 @@ public class DownloadManager {
                     @Override
                     public void onProgress(int current, int total) {
                         finalInfo.setCurrentPos(current);
-                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOAD);
+                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
                         finalInfo.setSize(total);
                         cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
                         notifyDownloadStateChanged(finalInfo);
                     }
 
                     @Override
-                    public void onPause() {
-                        LogUtils.d("下载暂停");
+                    public void onPause(String downloadUrl) {
+                        LogUtils.d("DownloadTask onSuccess downloadUrl = " + downloadUrl);
                     }
 
                     @Override
-                    public void onSuccess(String path) {
-                        LogUtils.d("下载完成，保存地址为：" + path);
+                    public void onSuccess(String downloadUrl, String path) {
+                        LogUtils.d("DownloadTask onSuccess downloadUrl = " + downloadUrl + " path = " + path);
                         // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
                         mDownloadTaskMap.remove(finalInfo.getUniqueKey());
                         finalInfo.setCurrentState(DownloadInfo.STATE_SUCCESS);
@@ -161,8 +164,8 @@ public class DownloadManager {
                     }
 
                     @Override
-                    public void onFailed(int failCode, String errorMessage) {
-                        LogUtils.d("下载失败，code = " + failCode + " " + errorMessage);
+                    public void onFailed(String downloadUrl, int failCode, String errorMessage) {
+                        LogUtils.d("DownloadTask onFailed downloadUrl = " + downloadUrl + " code = " + failCode + " " + errorMessage);
                         // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
                         mDownloadTaskMap.remove(finalInfo.getUniqueKey());
                         finalInfo.setCurrentState(DownloadInfo.STATE_ERROR);
@@ -183,15 +186,15 @@ public class DownloadManager {
      */
     public synchronized void pause(String uniqueKey) {
         if (TextUtils.isEmpty(uniqueKey)) {
-            throw new NullPointerException("uniqueKey is null");
+            throw new NullPointerException("uniqueKey is null, pause fail");
         }
         DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
         if (downloadInfo == null) {
-            throw new NullPointerException(uniqueKey + " is not in downloading");
+            throw new NullPointerException("uniqueKey = " + uniqueKey + " is not in downloading");
         }
         int state = downloadInfo.getCurrentState();
         // 如果当前状态是等待下载或者正在下载, 需要暂停当前任务
-        if (state == DownloadInfo.STATE_WAITING || state == DownloadInfo.STATE_DOWNLOAD) {
+        if (state == DownloadInfo.STATE_WAITING || state == DownloadInfo.STATE_DOWNLOADING) {
             // 停止当前的下载任务
             DownloadTask downloadTask = mDownloadTaskMap.get(uniqueKey);
             if (downloadTask != null) {
@@ -217,27 +220,30 @@ public class DownloadManager {
             throw new NullPointerException("uniqueKey is null");
         }
         DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
-        if (downloadInfo != null) {
-            File file = new File(downloadInfo.getPath());
-            if (!file.exists()) {
-                return;
+        if (downloadInfo == null || TextUtils.isEmpty(downloadInfo.getPath())) {
+            LogUtils.d("the apk you want to install has not been downloaded uniqueKey = " + uniqueKey);
+            return;
+        }
+        File file = new File(downloadInfo.getPath());
+        if (!file.exists()) {
+            LogUtils.d("the apk is no longer exist in the path = " + file.getAbsolutePath());
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Uri data;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {//判断版本大于等于7.0
+                // 通过FileProvider创建一个content类型的Uri
+                data = FileProvider.getUriForFile(context, context.getPackageName() + ".rzm.download.provider", file);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);// 给目标应用一个临时授权
+            } else {
+                data = Uri.fromFile(file);
             }
-            try {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                Uri data;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {//判断版本大于等于7.0
-                    // 通过FileProvider创建一个content类型的Uri
-                    data = FileProvider.getUriForFile(context, context.getPackageName() + ".download.fileprovider", file);
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);// 给目标应用一个临时授权
-                } else {
-                    data = Uri.fromFile(file);
-                }
-                intent.setDataAndType(data, "application/vnd.android.package-archive");
-                context.startActivity(intent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            intent.setDataAndType(data, "application/vnd.android.package-archive");
+            context.startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -270,9 +276,6 @@ public class DownloadManager {
     public synchronized void unregisterObserver(DownloadObserver observer) {
         if (observer != null && mObservers.contains(observer)) {
             mObservers.remove(observer);
-        }
-        if (mainHandler != null) {
-            mainHandler.removeCallbacksAndMessages(null);
         }
     }
 

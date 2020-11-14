@@ -9,7 +9,7 @@ public class DownloadInfo implements Serializable {
     // 等待下载
     public static final int STATE_WAITING = 1;
     // 正在下载
-    public static final int STATE_DOWNLOAD = 2;
+    public static final int STATE_DOWNLOADING = 2;
     // 下载暂停
     public static final int STATE_PAUSE = 3;
     // 下载失败
@@ -195,7 +195,7 @@ public class DownloadInfo implements Serializable {
      * @return
      */
     public static boolean checkPause(int currentState){
-        if (currentState == DownloadInfo.STATE_DOWNLOAD
+        if (currentState == DownloadInfo.STATE_DOWNLOADING
                 || currentState == DownloadInfo.STATE_WAITING){
             return true;
         }else{

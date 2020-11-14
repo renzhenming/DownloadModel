@@ -13,7 +13,6 @@ public class DefaultPathManager implements IPath {
     }
     @Override
     public String downloadPath() {
-        return Environment.getExternalStorageDirectory()+ File.separator+"download_asset";
-        //return context.getFilesDir()+ File.separator+"download_asset";
+        return context.getFilesDir()+ File.separator+"download_asset";
     }
 }
