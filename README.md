@@ -1,21 +1,20 @@
 # DownloadModel
-下载器探索
 
 使用方法：
 
-Add it in your root build.gradle at the end of repositories:
+#####1.Add it in your root build.gradle at the end of repositories:
 ```
 allprojects {
-	repositories {
-		maven { url 'https://jitpack.io' }
-	}
+    repositories {
+	maven { url 'https://jitpack.io' }
+    }
 }	
 ```
 
 Add the dependency:
 ```
 dependencies {
-	implementation 'com.github.renzhenming:DownloadModel:xxxx'
+    implementation 'com.github.renzhenming:DownloadModel:xxxx'
 }
 ```
 
@@ -49,9 +48,33 @@ file_paths.xml文件
 ```
 当然你也可以通过实现IPath接口来自定义你想要的存储路径，比如你可以把下载的资源存放在sd卡下
 ```
-Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"download_asset"
+public class MyPathManager implements IPath {
+    private final Context context;
+
+    public MyPathManager(Context context){
+        this.context = context;
+    }
+    @Override
+    public String downloadPath() {
+        return Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"download_asset";
+    }
+}
 ```
+
 这样一来，你要记得更改file_path.xml中的配置，切记
+
+下载器提供了比较灵活的接口配置，比如如果你想使用okhttp或者其他网络工具来实现下载，你可以通过IConnection接口来实现你的愿望
+```
+public interface IConnection {
+    int getContentLength(String downloadUrl) throws Exception;
+
+    InputStream download(String downloadUrl, int rangeStart, int rangeEnd) throws Exception;
+}
+```
+你需要自己创建一个类来实现IConnection接口，然后这样设置给下载器即可
+```
+DownloadManager.getInstance(context).setConnManager(new MyConnection());
+```
 
  ###开启下载
  ```
