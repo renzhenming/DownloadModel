@@ -14,7 +14,7 @@ allprojects {
 2.Add the dependency:
 ```
 dependencies {
-    implementation 'com.github.renzhenming:DownloadModel:xxxx'
+    implementation 'com.github.renzhenming:DownloadModel:1.0.8'
 }
 ```
 
@@ -140,7 +140,9 @@ DownloadManager.getInstance(context).setThreadPool(new MyThreadPoo())
  ```
  
  ###如果下载的是apk,还可以根据包名查询
+ ```
  List<DownloadInfo> downloadList = DownloadManager.getInstance(context).getDownloadInfoByPkgName(context.getPackageName());
+ ```
 	
  ###监听下载状态
  ```
