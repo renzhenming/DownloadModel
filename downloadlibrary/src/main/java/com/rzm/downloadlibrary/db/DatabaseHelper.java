@@ -8,7 +8,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
 import com.rzm.downloadlibrary.download.DownloadInfo;
-import com.rzm.downloadlibrary.download.DownloadManager;
 import com.rzm.downloadlibrary.utils.LogUtils;
 
 import java.util.ArrayList;
