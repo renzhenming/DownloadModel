@@ -53,8 +53,8 @@ compileOnly('com.android.support:appcompat-v7:28.0.0')
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path
-        name="download_asset"
-        path="." />
+        name="files"
+        path="download_asset" />
 </paths>
 ```
 当然你也可以通过实现IPath接口来自定义你想要的存储路径，比如你可以把下载的资源存放在sd卡下
