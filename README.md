@@ -53,7 +53,7 @@ compileOnly('com.android.support:appcompat-v7:28.0.0')
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path
-        name="files"
+        name="dm_files" //这个名字你可以随意写，只是个标示，你最好确保它不会和其他的名字重复
         path="download_asset" />
 </paths>
 ```
@@ -72,7 +72,16 @@ public class MyPathManager implements IPath {
 }
 ```
 
-这样一来，你要记得更改file_path.xml中的配置，切记
+这样一来，你要记得更改file_path.xml中的配置
+```
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path
+        name="dm_external_storage_root"
+        path="download_asset" />
+</paths>
+```
+
+或者你想存在其他目录，配置相应的file_path即可
 
 7.下载器提供了比较灵活的接口配置，比如如果你想使用okhttp或者其他网络工具来实现下载，你可以通过IConnection接口来实现你的愿望
 ```
