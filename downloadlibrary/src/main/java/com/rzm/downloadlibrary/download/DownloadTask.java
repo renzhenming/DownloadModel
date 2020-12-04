@@ -45,6 +45,7 @@ public class DownloadTask implements Runnable {
     private String downloadPath;
     //下载是否暂停
     private volatile boolean pause = false;
+    private String randomFileStr;
 
     public DownloadTask(Context context) {
         pathManager = new DefaultPathManager(context);
@@ -119,6 +120,9 @@ public class DownloadTask implements Runnable {
     }
 
     public DownloadTask build() {
+        if (TextUtils.isEmpty(downloadUrl)) {
+            throw new NullPointerException("downloadUrl cannot be null");
+        }
         File file = new File(pathManager.downloadPath());
         if (!file.exists() || !file.isDirectory()) {
             file.mkdirs();
@@ -126,6 +130,7 @@ public class DownloadTask implements Runnable {
         downloadThreads = new ArrayList<>(threadCount);
         countDownLatch = new CountDownLatch(threadCount);
         downloadPath = pathManager.downloadPath();
+        randomFileStr = Md5Utils.md5(downloadUrl);
         pause = false;
         return this;
     }
@@ -163,10 +168,10 @@ public class DownloadTask implements Runnable {
         }
     }
 
-    private void startFinishThread(String downloadUrl) {
-        FinishThread finishThread = new FinishThread(downloadUrl);
-        new Thread(finishThread).start();
-    }
+//    private void startFinishThread(String downloadUrl) {
+//        FinishThread finishThread = new FinishThread(downloadUrl);
+//        new Thread(finishThread).start();
+//    }
 
     private void starProgressTask(List<DownloadThread> downloadThreads, int fileTotalLength) {
         ProgressThread progressThread = new ProgressThread();
@@ -186,7 +191,7 @@ public class DownloadTask implements Runnable {
                 startDownloadThreads(downloadUrl, downloadPath, fileTotalLength, threadCount,
                         countDownLatch, downloadThreads);
                 //开启等待完成线程
-                startFinishThread(downloadUrl);
+                //startFinishThread(downloadUrl);
                 starProgressTask(downloadThreads, fileTotalLength);
             } else {
                 onDownloadFailed(-1, "contentLength < 0");
@@ -231,17 +236,21 @@ public class DownloadTask implements Runnable {
         @Override
         public void run() {
             while (true) {
+                if (pause) {
+                    onDownloadPause();
+                    LogUtils.d("download " + downloadUrl + " pause, break loop");
+                    break;
+                }
+                if (countDownLatch.getCount() == 0) {
+                    afterDownloadComplete();
+                    break;
+                }
                 int downloadSize = 0;
                 for (DownloadThread downloadThread : downloadThreads) {
                     downloadSize += downloadThread.getDownloadSize();
                 }
-                float percent = (downloadSize * 1.0f) / (fileTotalLength * 1.0f) * 100;
-                if (percent >= 100) {
-                    break;
-                }
-                if (pause) {
-                    onDownloadPause();
-                    LogUtils.d("download " + downloadUrl + " pause, break loop");
+                if (downloadSize == fileTotalLength) {
+                    afterDownloadComplete();
                     break;
                 } else {
                     onDownloadProgress(downloadSize, fileTotalLength);
@@ -250,47 +259,73 @@ public class DownloadTask implements Runnable {
         }
     }
 
-    class FinishThread implements Runnable {
-
-        private String randomTempFileStr;
-
-        public FinishThread(String downloadUrl) {
-            if (!TextUtils.isEmpty(downloadUrl))
-                randomTempFileStr = Md5Utils.md5(downloadUrl);
-        }
-
-        @Override
-        public void run() {
-            try {
-                countDownLatch.await();
-                //暂停后不再执行
-                if (pause) {
-                    return;
-                }
-                //下载完成，重命名文件
-                File downloadFile = new File(pathManager.downloadPath() + File.separator + getFileName() + ".tmp");
-                File destFile = new File(pathManager.downloadPath() + File.separator + getFileName());
-                downloadFile.renameTo(destFile);
-                LogUtils.d("all download finished, downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
-                //下载完毕清空临时文件
-                for (int threadId = 0; threadId < threadCount; threadId++) {
-                    new File(pathManager.downloadPath() + File.separator + randomTempFileStr + threadId + ".txt").delete();
-                }
-                LogUtils.d("temp file deleted");
-                if (destFile.length() == fileTotalLength) {
-                    LogUtils.d("download success url = " + downloadUrl);
-                    onDownloadSuccess(downloadUrl, pathManager.downloadPath() + File.separator + getFileName());
-                } else {
-                    LogUtils.d("download " + downloadUrl + " fail destFile.length() != fileTotalLength ");
-                    destFile.delete();
-                    onDownloadFailed(-1, "download file finish, but file is illegal");
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                onDownloadFailed(-1, "thread was interrupt");
+    private void afterDownloadComplete() {
+        try {
+            //下载完成，重命名文件
+            File downloadFile = new File(pathManager.downloadPath() + File.separator + getFileName() + ".tmp");
+            File destFile = new File(pathManager.downloadPath() + File.separator + getFileName());
+            downloadFile.renameTo(destFile);
+            LogUtils.d("all download finished, downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
+            //下载完毕清空临时文件
+            for (int threadId = 0; threadId < threadCount; threadId++) {
+                new File(pathManager.downloadPath() + File.separator + randomFileStr + threadId + ".txt").delete();
             }
+            LogUtils.d("temp file deleted");
+            if (destFile.length() == fileTotalLength) {
+                LogUtils.d("download success url = " + downloadUrl);
+                onDownloadSuccess(downloadUrl, pathManager.downloadPath() + File.separator + getFileName());
+            } else {
+                LogUtils.d("download " + downloadUrl + " fail destFile.length() != fileTotalLength ");
+                destFile.delete();
+                onDownloadFailed(-1, "download file finish, but file is illegal");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            onDownloadFailed(-1, e.toString());
         }
     }
+
+//    class FinishThread implements Runnable {
+//
+//        private String randomTempFileStr;
+//
+//        public FinishThread(String downloadUrl) {
+//            if (!TextUtils.isEmpty(downloadUrl))
+//                randomTempFileStr = Md5Utils.md5(downloadUrl);
+//        }
+//
+//        @Override
+//        public void run() {
+//            try {
+//                countDownLatch.await();
+//                //暂停后不再执行
+//                if (pause) {
+//                    return;
+//                }
+//                //下载完成，重命名文件
+//                File downloadFile = new File(pathManager.downloadPath() + File.separator + getFileName() + ".tmp");
+//                File destFile = new File(pathManager.downloadPath() + File.separator + getFileName());
+//                downloadFile.renameTo(destFile);
+//                LogUtils.d("all download finished, downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
+//                //下载完毕清空临时文件
+//                for (int threadId = 0; threadId < threadCount; threadId++) {
+//                    new File(pathManager.downloadPath() + File.separator + randomTempFileStr + threadId + ".txt").delete();
+//                }
+//                LogUtils.d("temp file deleted");
+//                if (destFile.length() == fileTotalLength) {
+//                    LogUtils.d("download success url = " + downloadUrl);
+//                    onDownloadSuccess(downloadUrl, pathManager.downloadPath() + File.separator + getFileName());
+//                } else {
+//                    LogUtils.d("download " + downloadUrl + " fail destFile.length() != fileTotalLength ");
+//                    destFile.delete();
+//                    onDownloadFailed(-1, "download file finish, but file is illegal");
+//                }
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//                onDownloadFailed(-1, "thread was interrupt");
+//            }
+//        }
+//    }
 
     //下载文件的线程
     class DownloadThread implements Runnable {
@@ -339,7 +374,6 @@ public class DownloadTask implements Runnable {
          * @throws IOException
          */
         private void download(String downloadUrl, String downloadPath, int threadId, int startIndex, int endIndex) throws Exception {
-            String randomFileStr = Md5Utils.md5(downloadUrl);
             //上次下载的位置
             int lastDownloadIndex = startIndex;
             //读取上次下载的结束位置，作为本次下载的开始位置
