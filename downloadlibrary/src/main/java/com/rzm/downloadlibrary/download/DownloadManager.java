@@ -149,7 +149,7 @@ public class DownloadManager {
 
                     @Override
                     public void onPause(String downloadUrl) {
-                        LogUtils.d("DownloadTask onSuccess downloadUrl = " + downloadUrl);
+                        LogUtils.d("DownloadTask onPause downloadUrl = " + downloadUrl);
                     }
 
                     @Override

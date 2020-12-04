@@ -150,7 +150,7 @@ public class DownloadTask implements Runnable {
         //根据资源的大小和线程数量计算每个线程下载文件的大小，还要计算每个线程下载的开始位置和结束位置。
         int blockSize = fileTotalLength / threadCount;//每个线程下载的大小
         //循环计算每个线程的开始位置和结束位置
-        LogUtils.d("start " + threadCount + "thread to download each download length is ：" + blockSize);
+        LogUtils.d("start " + threadCount + " thread to download each download length is ：" + blockSize);
         for (int threadId = 0; threadId < threadCount; threadId++) {
             //线程的开始下载位置
             int startIndex = threadId * blockSize;
@@ -160,18 +160,13 @@ public class DownloadTask implements Runnable {
             if (threadId == threadCount - 1) {
                 endIndex = fileTotalLength - 1;
             }
-            LogUtils.d("thread" + threadId + "begin at :" + startIndex + " and end at ：" + endIndex);
+            LogUtils.d("thread" + threadId + " begin at :" + startIndex + " and end at ：" + endIndex);
             //开启这些线程去下载
             DownloadThread downloadThread = new DownloadThread(downloadUrl, downloadPath, threadId, startIndex, endIndex, countDownLatch);
             downloadThreads.add(downloadThread);
             new Thread(downloadThread).start();
         }
     }
-
-//    private void startFinishThread(String downloadUrl) {
-//        FinishThread finishThread = new FinishThread(downloadUrl);
-//        new Thread(finishThread).start();
-//    }
 
     private void starProgressTask(List<DownloadThread> downloadThreads, int fileTotalLength) {
         ProgressThread progressThread = new ProgressThread();
@@ -284,48 +279,6 @@ public class DownloadTask implements Runnable {
             onDownloadFailed(-1, e.toString());
         }
     }
-
-//    class FinishThread implements Runnable {
-//
-//        private String randomTempFileStr;
-//
-//        public FinishThread(String downloadUrl) {
-//            if (!TextUtils.isEmpty(downloadUrl))
-//                randomTempFileStr = Md5Utils.md5(downloadUrl);
-//        }
-//
-//        @Override
-//        public void run() {
-//            try {
-//                countDownLatch.await();
-//                //暂停后不再执行
-//                if (pause) {
-//                    return;
-//                }
-//                //下载完成，重命名文件
-//                File downloadFile = new File(pathManager.downloadPath() + File.separator + getFileName() + ".tmp");
-//                File destFile = new File(pathManager.downloadPath() + File.separator + getFileName());
-//                downloadFile.renameTo(destFile);
-//                LogUtils.d("all download finished, downloadFile.length()=" + downloadFile.length() + " destFile.length=" + destFile.length() + " fileTotalLength=" + fileTotalLength);
-//                //下载完毕清空临时文件
-//                for (int threadId = 0; threadId < threadCount; threadId++) {
-//                    new File(pathManager.downloadPath() + File.separator + randomTempFileStr + threadId + ".txt").delete();
-//                }
-//                LogUtils.d("temp file deleted");
-//                if (destFile.length() == fileTotalLength) {
-//                    LogUtils.d("download success url = " + downloadUrl);
-//                    onDownloadSuccess(downloadUrl, pathManager.downloadPath() + File.separator + getFileName());
-//                } else {
-//                    LogUtils.d("download " + downloadUrl + " fail destFile.length() != fileTotalLength ");
-//                    destFile.delete();
-//                    onDownloadFailed(-1, "download file finish, but file is illegal");
-//                }
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//                onDownloadFailed(-1, "thread was interrupt");
-//            }
-//        }
-//    }
 
     //下载文件的线程
     class DownloadThread implements Runnable {
