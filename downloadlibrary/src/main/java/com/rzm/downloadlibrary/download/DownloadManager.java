@@ -58,6 +58,13 @@ public class DownloadManager {
     }
 
     /**
+     * 调试模式
+     */
+    public void debug() {
+        LogUtils.debug(true);
+    }
+
+    /**
      * 下载器的path管理，包括各种存储路径等，对外开放
      *
      * @param path

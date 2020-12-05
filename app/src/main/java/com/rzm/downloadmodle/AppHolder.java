@@ -31,6 +31,7 @@ public class AppHolder extends RecyclerView.ViewHolder implements DownloadManage
         textView.setText(appInfo.name);
         mAppInfo = appInfo;
         mDownloadManager = DownloadManager.getInstance(context);
+        mDownloadManager.debug();
         // 监听下载进度
         mDownloadManager.registerObserver(this);
         mCurrentState = DownloadInfo.STATE_NONE;
