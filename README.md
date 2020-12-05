@@ -20,7 +20,7 @@ dependencies {
 
 3.权限
 ```
-<!--保存下载资源到sd卡需要用到存储权限，如果你不做path的设置，可以不加-->
+<!--保存下载资源到sd卡需要用到存储权限，如果你不更改下载存储路径的设置（默认下载路径为dat/data/包名/files/download_asset/.），可以不加-->
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <!--没有网络权限，你是下载不了东西的-->
