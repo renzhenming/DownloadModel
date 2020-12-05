@@ -14,7 +14,7 @@ allprojects {
 2.Add the dependency:
 ```
 dependencies {
-    implementation 'com.github.renzhenming:DownloadModel:1.0.8'
+    implementation 'com.github.renzhenming:DownloadModel:1.0.9'
 }
 ```
 
