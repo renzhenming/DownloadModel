@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.IntRange;
 import android.support.v4.content.FileProvider;
 import android.text.TextUtils;
 
@@ -31,6 +32,8 @@ public class DownloadManager {
     private ICache<DownloadInfo> cacheManager;
     private IThreadPool threadManager;
     private IConnection connManager;
+    private int threadCount = 1;
+    private String downloadName = "";
     //线程切换
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     // 观察者的集合
@@ -101,6 +104,16 @@ public class DownloadManager {
     }
 
     /**
+     * 开启几个线程下载
+     *
+     * @param count
+     * @return
+     */
+    public void setThreadCount(@IntRange(from = 1, to = Integer.MAX_VALUE) int count) {
+        this.threadCount = count;
+    }
+
+    /**
      * 开始下载
      */
     public synchronized void download(DownloadInfo info) {
@@ -133,6 +146,8 @@ public class DownloadManager {
         final DownloadTask downloadTask = new DownloadTask(context)
                 .setDownloadUrl(downloadInfo.getDownloadUrl())
                 .setSavePath(pathManager)
+                .setThreadCount(threadCount)
+                .setDownloadName(downloadName = finalInfo.getName())
                 .setConnManager(connManager)
                 .setDownloadListener(new DownloadTask.DownloadListener() {
 
