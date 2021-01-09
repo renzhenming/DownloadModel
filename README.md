@@ -14,13 +14,13 @@ allprojects {
 2.Add the dependency:
 ```
 dependencies {
-    implementation 'com.github.renzhenming:DownloadModel:1.0.8'
+    implementation 'com.github.renzhenming:DownloadModel:1.0.9'
 }
 ```
 
 3.权限
 ```
-<!--保存下载资源到sd卡需要用到存储权限，如果你不做path的设置，可以不加-->
+<!--保存下载资源到sd卡需要用到存储权限，如果你不更改下载存储路径的设置（默认下载路径为dat/data/包名/files/download_asset/.），可以不加-->
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <!--没有网络权限，你是下载不了东西的-->
@@ -67,7 +67,7 @@ public class MyPathManager implements IPath {
     }
     @Override
     public String downloadPath() {
-        return Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"download_asset";
+        return Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"xxxx";
     }
 }
 ```
@@ -77,7 +77,7 @@ public class MyPathManager implements IPath {
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-path
         name="dm_external_storage_root"
-        path="download_asset" />
+        path="xxxx" />
 </paths>
 ```
 
@@ -124,7 +124,6 @@ DownloadManager.getInstance(context).setThreadPool(new MyThreadPoo())
 
 以上提供的这些能力，你完全可以使用内部默认的配置，当然如果你不嫌麻烦或者有定制的需求，那就放心的用吧
 
-怎么用呢？
 
  ###开启下载（从暂停的状态继续下载同样是这个方法）
  ```
