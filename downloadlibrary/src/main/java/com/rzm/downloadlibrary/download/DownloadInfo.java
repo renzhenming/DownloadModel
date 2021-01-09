@@ -2,7 +2,7 @@ package com.rzm.downloadlibrary.download;
 
 import java.io.Serializable;
 
-public class DownloadInfo implements Serializable {
+public class DownloadInfo implements Serializable, Cloneable {
 
     // 下载未开始
     public static final int STATE_NONE = 0;
@@ -176,43 +176,51 @@ public class DownloadInfo implements Serializable {
 
     /**
      * 检测当前状态是否需要开始下载
+     *
      * @param currentState
      * @return
      */
-    public static boolean checkStart(int currentState){
+    public static boolean checkStart(int currentState) {
         if (currentState == DownloadInfo.STATE_NONE
                 || currentState == DownloadInfo.STATE_PAUSE
-                || currentState == DownloadInfo.STATE_ERROR){
+                || currentState == DownloadInfo.STATE_ERROR) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
     /**
      * 检测当前状态是否需要开始暂停
+     *
      * @param currentState
      * @return
      */
-    public static boolean checkPause(int currentState){
+    public static boolean checkPause(int currentState) {
         if (currentState == DownloadInfo.STATE_DOWNLOADING
-                || currentState == DownloadInfo.STATE_WAITING){
+                || currentState == DownloadInfo.STATE_WAITING) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
     /**
      * 检测当前状态是否需要开始安装
+     *
      * @param currentState
      * @return
      */
-    public static boolean checkInstall(int currentState){
-        if (currentState == DownloadInfo.STATE_SUCCESS){
+    public static boolean checkInstall(int currentState) {
+        if (currentState == DownloadInfo.STATE_SUCCESS) {
             return true;
-        }else{
+        } else {
             return false;
         }
+    }
+
+    @Override
+    protected DownloadInfo clone() throws CloneNotSupportedException {
+        return (DownloadInfo) super.clone();
     }
 }

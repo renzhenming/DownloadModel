@@ -139,46 +139,76 @@ public class DownloadManager {
                     @Override
                     public void onStart(String downloadUrl) {
                         LogUtils.d("DownloadTask onStart downloadUrl = " + downloadUrl);
-                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
-                        finalInfo.setCurrentPos(0);
-                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
-                        notifyDownloadStateChanged(finalInfo);
+                        try {
+                            DownloadInfo clonedInfo = finalInfo.clone();
+                            clonedInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
+                            clonedInfo.setCurrentPos(0);
+                            cacheManager.updateCache(clonedInfo.getUniqueKey(), clonedInfo);
+                            notifyDownloadStateChanged(clonedInfo);
+                        } catch (CloneNotSupportedException e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     @Override
                     public void onProgress(int current, int total) {
-                        finalInfo.setCurrentPos(current);
-                        finalInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
-                        finalInfo.setSize(total);
-                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
-                        notifyDownloadStateChanged(finalInfo);
+                        try {
+                            DownloadInfo clonedInfo = finalInfo.clone();
+                            clonedInfo.setCurrentPos(current);
+                            clonedInfo.setCurrentState(DownloadInfo.STATE_DOWNLOADING);
+                            clonedInfo.setSize(total);
+                            cacheManager.updateCache(clonedInfo.getUniqueKey(), clonedInfo);
+                            notifyDownloadStateChanged(clonedInfo);
+                        } catch (CloneNotSupportedException e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     @Override
                     public void onPause(String downloadUrl) {
                         LogUtils.d("DownloadTask onPause downloadUrl = " + downloadUrl);
+                        try {
+                            DownloadInfo clonedInfo = finalInfo.clone();
+                            // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
+                            mDownloadTaskMap.remove(clonedInfo.getUniqueKey());
+                            clonedInfo.setCurrentState(DownloadInfo.STATE_PAUSE);
+                            cacheManager.updateCache(uniqueKey, clonedInfo);
+                            notifyDownloadStateChanged(clonedInfo);
+                        } catch (CloneNotSupportedException e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     @Override
                     public void onSuccess(String downloadUrl, String path) {
                         LogUtils.d("DownloadTask onSuccess downloadUrl = " + downloadUrl + " path = " + path);
-                        // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                        mDownloadTaskMap.remove(finalInfo.getUniqueKey());
-                        finalInfo.setCurrentState(DownloadInfo.STATE_SUCCESS);
-                        finalInfo.setPath(path);
-                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
-                        notifyDownloadStateChanged(finalInfo);
+                        try {
+                            DownloadInfo clonedInfo = finalInfo.clone();
+                            // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
+                            mDownloadTaskMap.remove(clonedInfo.getUniqueKey());
+                            clonedInfo.setCurrentState(DownloadInfo.STATE_SUCCESS);
+                            clonedInfo.setPath(path);
+                            cacheManager.updateCache(clonedInfo.getUniqueKey(), clonedInfo);
+                            notifyDownloadStateChanged(clonedInfo);
+                        } catch (CloneNotSupportedException e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     @Override
                     public void onFailed(String downloadUrl, int failCode, String errorMessage) {
                         LogUtils.d("DownloadTask onFailed downloadUrl = " + downloadUrl + " code = " + failCode + " " + errorMessage);
-                        // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                        mDownloadTaskMap.remove(finalInfo.getUniqueKey());
-                        finalInfo.setCurrentState(DownloadInfo.STATE_ERROR);
-                        finalInfo.setCurrentPos(0);
-                        cacheManager.updateCache(finalInfo.getUniqueKey(), finalInfo);
-                        notifyDownloadStateChanged(finalInfo);
+                        try {
+                            DownloadInfo clonedInfo = finalInfo.clone();
+                            // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
+                            mDownloadTaskMap.remove(clonedInfo.getUniqueKey());
+                            clonedInfo.setCurrentState(DownloadInfo.STATE_ERROR);
+                            clonedInfo.setCurrentPos(0);
+                            cacheManager.updateCache(clonedInfo.getUniqueKey(), clonedInfo);
+                            notifyDownloadStateChanged(clonedInfo);
+                        } catch (CloneNotSupportedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 })
                 .build();
@@ -208,13 +238,6 @@ public class DownloadManager {
                 //等待状态下直接从等待队列移除
                 downloadTask.pause(true);
                 threadManager.cancel(downloadTask);
-
-                // 不管下载成功,失败还是暂停, 下载任务已经结束,都需要从当前任务集合中移除
-                mDownloadTaskMap.remove(uniqueKey);
-                downloadInfo.setCurrentState(DownloadInfo.STATE_PAUSE);
-                cacheManager.updateCache(uniqueKey, downloadInfo);
-                // 更新下载状态为暂停
-                notifyDownloadStateChanged(downloadInfo);
             }
         }
     }
