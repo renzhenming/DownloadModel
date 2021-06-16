@@ -302,7 +302,19 @@ public class DownloadManager {
         if (TextUtils.isEmpty(uniqueKey)) {
             throw new NullPointerException("uniqueKey is null");
         }
-        return cacheManager.getCache(uniqueKey);
+        // 先获取info等待进一步验证
+        DownloadInfo downloadInfo = cacheManager.getCache(uniqueKey);
+        if (downloadInfo == null) return null;
+
+        // 获取到的info为下载中状态，但不在downloadTaskMap中，即因外部原因导致下载中止且未更新状态
+        if (downloadInfo.getCurrentState() == DownloadInfo.STATE_DOWNLOADING
+                && mDownloadTaskMap.get(uniqueKey) == null) {
+            // 此时用户的期望是该Task有显式的暂停中标示，不应为下载中，更不应因此在调用下载方法时被pause()拦截，从而彻底卡住该Task
+            // 更新info的状态为暂停中
+            downloadInfo.setCurrentState(DownloadInfo.STATE_PAUSE);
+        }
+
+        return downloadInfo;
     }
 
     public List<DownloadInfo> getDownloadInfoByPkgName(String packageName) {
